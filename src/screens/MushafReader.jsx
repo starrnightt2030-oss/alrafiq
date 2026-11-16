@@ -61,6 +61,7 @@ function Page({ n, ayahs, width, height }) {
 export default function MushafReader({ page: initial }) {
   const { data, error } = useQuran();
   const setLastPage = useStore((s) => s.setLastPage);
+  const markPage = useStore((s) => s.markPage);
   const bookmarks = useStore((s) => s.quran.bookmarks);
   const toggleBookmark = useStore((s) => s.toggleBookmark);
   const [page, setPage] = useState(() => Math.min(TOTAL_PAGES, Math.max(1, initial || 1)));
@@ -77,6 +78,7 @@ export default function MushafReader({ page: initial }) {
   }, []);
 
   useEffect(() => { if (initial && initial !== page) { setDir(initial > page ? 1 : -1); setPage(Math.min(TOTAL_PAGES, Math.max(1, initial))); } }, [initial]); // eslint-disable-line
+  useEffect(() => { const t = setTimeout(() => markPage(page), 4000); return () => clearTimeout(t); }, [page]); // eslint-disable-line
   useEffect(() => { setLastPage(page); history.replaceState(null, '', '#/quran/' + page); }, [page]); // eslint-disable-line
 
   const turn = (d) => { const p = page + d; if (p < 1 || p > TOTAL_PAGES) return; setDir(d); setPage(p); vibrate(6); };

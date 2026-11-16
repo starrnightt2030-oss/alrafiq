@@ -18,6 +18,8 @@ import Prayer from './screens/Prayer.jsx';
 import Settings from './screens/Settings.jsx';
 import Soon from './screens/Soon.jsx';
 import Duas from './screens/Duas.jsx';
+import Report from './screens/Report.jsx';
+import Challenges from './screens/Challenges.jsx';
 import { AZKAR } from './data/azkar.js';
 import { RUQYAH } from './data/ruqyah.js';
 
@@ -28,6 +30,8 @@ function Screen({ route }) {
     case 'azkar': return b ? <AzkarReader key={b} set={AZKAR[b]} /> : <AzkarIndex />;
     case 'ruqyah': return <AzkarReader key="ruqyah" set={RUQYAH} fallback="/azkar" />;
     case 'duas': return <Duas />;
+    case 'report': return <Report />;
+    case 'challenges': return <Challenges />;
     case 'wird': return <Wird />;
     case 'quran': return b ? <MushafReader key="m" page={+b} /> : <QuranIndex />;
     case 'prayer': return <Prayer />;
@@ -37,7 +41,7 @@ function Screen({ route }) {
   }
 }
 
-const FULL = (r) => (r[0] === 'azkar' && r[1]) || ['wird', 'ruqyah', 'duas'].includes(r[0]) || (r[0] === 'quran' && r[1]);
+const FULL = (r) => (r[0] === 'azkar' && r[1]) || ['wird', 'ruqyah', 'duas', 'report', 'challenges'].includes(r[0]) || (r[0] === 'quran' && r[1]);
 
 export default function App() {
   const theme = useStore((s) => s.settings.theme);
@@ -47,6 +51,7 @@ export default function App() {
 
   useEffect(() => { applyTheme(theme); }, [theme]);
   useEffect(() => {
+    useStore.getState().ensureFirstDay();
     scheduleReminders();
     const unlock = () => { sound.unlock(); removeEventListener('pointerdown', unlock); };
     addEventListener('pointerdown', unlock);

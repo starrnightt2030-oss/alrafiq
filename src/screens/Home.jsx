@@ -1,32 +1,36 @@
-import { BookOpen, CircleDot, HandHeart, ShieldCheck, Headphones, BookMarked, Trophy, Flame, Sunrise, Sunset, BellRing } from 'lucide-react';
+import { BookOpen, CircleDot, HandHeart, ShieldCheck, Headphones, BookMarked, Trophy, Flame, Sunrise, Sunset, BellRing, ChartColumn, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useStore, streakOf } from '../store.js';
 import { THEMES, THEME_ORDER } from '../themes.js';
 import { AZKAR } from '../data/azkar.js';
-import { ar, arNum, todayKey, hijri, gregorian } from '../lib/arabic.js';
+import { ar, arNum, todayKey, hijri, gregorian, daysAr } from '../lib/arabic.js';
 import { resolveLocation, nextPrayer, timesFor, fmtTime, countdown } from '../lib/prayer.js';
 import { dueReminder } from '../lib/notify.js';
 import { useNow } from '../hooks.js';
 import { Pattern, Ring, Credit } from '../components/ui.jsx';
 import quranMeta from '../data/quranMeta.json';
 import logo from '../assets/logo.webp';
+import { STATUS, STATUS_ORDER } from '../lib/stats.js';
+import { useChallengeWatcher } from './Challenges.jsx';
+import { vibrate } from '../lib/haptics.js';
 
 const TILES = [
   { to: '/azkar', label: 'الأذكار', Icon: BookOpen },
   { to: '/wird', label: 'الورد', Icon: CircleDot },
   { to: '/quran', label: 'المصحف', Icon: BookMarked },
-  { to: '/prayer', label: 'الصلاة', Icon: Sunrise },
-  { to: '/duas', label: 'الأدعية', Icon: HandHeart },
+    { to: '/duas', label: 'الأدعية', Icon: HandHeart },
   { to: '/ruqyah', label: 'الرقية', Icon: ShieldCheck },
+  { to: '/challenges', label: 'التحديات', Icon: Trophy },
+  { to: '/report', label: 'تقييمي', Icon: ChartColumn },
   { to: '/soon/stories', label: 'القصص', Icon: Headphones, soon: true },
-  { to: '/soon/challenges', label: 'التحديات', Icon: Trophy, soon: true },
 ];
 
 const surahOfPage = (p) => { let s = quranMeta.surahs[0]; for (const x of quranMeta.surahs) { if (x.page <= p) s = x; else break; } return s; };
 
 export default function Home() {
   const now = useNow(1000);
-  const { settings, days, points, quran, setSetting } = useStore();
+  const { settings, days, points, quran, setSetting, setPrayer } = useStore();
+  const ch = useChallengeWatcher();
   const d = days[todayKey()] || { azkar: {}, wird: {} };
   const place = resolveLocation(settings.location);
   const next = nextPrayer(place, now);
@@ -43,6 +47,7 @@ export default function Home() {
   const sug = d.azkar[suggest];
   const sugTotal = AZKAR[suggest].items.length;
   const s = surahOfPage(quran.lastPage);
+  const ask = [...times].reverse().find((p) => p.time < now && !d.prayers?.[p.key]);
 
   return (
     <div className="screen" style={{ position: 'relative' }}>
@@ -97,6 +102,15 @@ export default function Home() {
         </div>
       </a>
 
+      {ask && (
+        <motion.section key={ask.key} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="card col" style={{ gap: 10 }} aria-label="تسجيل الصلاة">
+          <div className="row"><CheckCircle2 size={20} className="accent" aria-hidden="true" /><span className="h2">هل صلّيت {ask.name}؟</span></div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 6 }}>
+            {STATUS_ORDER.map((k) => <button key={k} onClick={() => { setPrayer(ask.key, k); vibrate(12); }} style={{ minHeight: 40, borderRadius: 12, border: '1px solid var(--line)', background: 'var(--surf2)', color: 'var(--text)', fontSize: 12 }}>{STATUS[k].name}</button>)}
+          </div>
+        </motion.section>
+      )}
+
       <section className="card row" style={{ gap: 14 }} aria-label="إنجاز اليوم">
         <Ring value={progress} label={`إنجاز اليوم ${Math.round(progress * 100)}٪`}>
           <span className="num" style={{ fontSize: 23 }}>{ar(Math.round(progress * 100))}٪</span>
@@ -128,8 +142,17 @@ export default function Home() {
         </a>
       </div>
 
+      {ch.c && (
+        <a href="#/challenges" className="card hl col" style={{ textDecoration: 'none', color: 'var(--text)', gap: 8 }}>
+          <div className="between"><span className="xs accent" style={{ fontWeight: 600 }}>تحدّيك الحالي</span><span className="xs muted">{ch.started ? (ch.expired ? 'انتهت المدة' : `${arNum(ch.value)} من ${arNum(ch.c.target)}`) : 'لم يبدأ — اضغط للبدء'}</span></div>
+          <div className="h2" style={{ lineHeight: 1.5 }}>{ch.c.title}</div>
+          <div className="bar"><i style={{ width: Math.round(ch.pct * 100) + '%' }} /></div>
+          <div className="xs muted">الجزاء: وسام «{ch.c.badge}» و{arNum(ch.c.points)} نقطة</div>
+        </a>
+      )}
+
       <div className="card between">
-        <div className="row"><Flame className="accent" size={24} aria-hidden="true" /><div><div className="h2">{streak ? `${ar(streak)} ${streak > 10 ? 'يومًا' : 'أيام'} متتالية` : 'ابدأ سلسلتك اليوم'}</div><div className="xs muted">أتمّ أذكار الصباح أو المساء كل يوم</div></div></div>
+        <div className="row"><Flame className="accent" size={24} aria-hidden="true" /><div><div className="h2">{streak ? `سلسلة ${daysAr(streak)}` : 'ابدأ سلسلتك اليوم'}</div><div className="xs muted">أتمّ أذكار الصباح أو المساء كل يوم</div></div></div>
       </div>
 
       <nav className="grid4" aria-label="الأقسام">

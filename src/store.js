@@ -32,6 +32,30 @@ export const useStore = create(
       points: 0,
       quran: { lastPage: 1, lastAt: null, bookmarks: [] },
       favDuas: [],
+      firstDay: null,
+      challenge: { i: 0, start: null, done: [] },
+
+      ensureFirstDay: () => { if (!get().firstDay) set({ firstDay: todayKey() }); },
+
+      // تسجيل الصلاة: نفس الحالة مرة أخرى تلغي التسجيل
+      setPrayer: (key, status, k = todayKey()) => set((s) => {
+        const d = day(s, k); const p = { ...(d.prayers || {}) };
+        if (p[key] === status) delete p[key]; else p[key] = status;
+        return { days: { ...s.days, [k]: { ...d, prayers: p } } };
+      }),
+
+      // صفحات المصحف التي فُتحت اليوم
+      markPage: (page) => set((s) => {
+        const k = todayKey(); const d = day(s, k); const pages = d.pages || [];
+        if (pages.includes(page)) return {};
+        return { days: { ...s.days, [k]: { ...d, pages: [...pages, page] } } };
+      }),
+
+      startChallenge: () => set((s) => ({ challenge: { ...s.challenge, start: todayKey() } })),
+      completeChallenge: (id, pts) => set((s) => s.challenge.done.some((x) => x.id === id) ? {} : ({
+        points: s.points + pts,
+        challenge: { i: s.challenge.i + 1, start: null, done: [...s.challenge.done, { id, at: todayKey() }] },
+      })),
 
       toggleFavDua: (id) => set((s) => ({ favDuas: s.favDuas.includes(id) ? s.favDuas.filter((x) => x !== id) : [...s.favDuas, id] })),
 
