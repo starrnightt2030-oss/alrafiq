@@ -9,8 +9,7 @@ export async function askPermission() {
   try { return await Notification.requestPermission(); } catch { return 'denied'; }
 }
 
-async function show(title, body) {
-  sound.notify();
+export async function showNotification(title, body) {
   try {
     if ('Notification' in window && Notification.permission === 'granted') {
       const reg = await navigator.serviceWorker?.getRegistration();
@@ -19,6 +18,8 @@ async function show(title, body) {
     }
   } catch {}
 }
+
+async function show(title, body) { sound.notify(); return showNotification(title, body); }
 
 const at = (hhmm) => { const [h, m] = hhmm.split(':').map(Number); const d = new Date(); d.setHours(h, m, 0, 0); return d; };
 

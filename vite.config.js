@@ -14,7 +14,7 @@ function pwa() {
     closeBundle() {
       const dist = 'dist';
       const walk = (d) => readdirSync(d).flatMap((f) => { const p = join(d, f); return statSync(p).isDirectory() ? walk(p) : [p]; });
-      const files = walk(dist).map((p) => './' + relative(dist, p).split('\\').join('/')).filter((f) => !/\/(sw\.js|version\.json)$/.test(f) && !f.endsWith('.map') && !/\.woff$/.test(f));
+      const files = walk(dist).map((p) => './' + relative(dist, p).split('\\').join('/')).filter((f) => !/\/(sw\.js|version\.json)$/.test(f) && !f.endsWith('.map') && !/\.woff$/.test(f) && !f.includes('/audio/stories/'));
       writeFileSync(join(dist, 'version.json'), JSON.stringify({ version: release.version, date: buildDate, notes: release.notes }, null, 2));
       const sw = readFileSync('./src/sw.template.js', 'utf8').replace('__VERSION__', release.version).replace('__FILES__', JSON.stringify(['./', ...files]));
       writeFileSync(join(dist, 'sw.js'), sw);

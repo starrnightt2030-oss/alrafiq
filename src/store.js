@@ -20,6 +20,7 @@ const defaultSettings = {
   quranScale: 1,
   textScale: 1,
   wirdGoal: 1000,
+  adhan: { enabled: true, volume: 1, dua: true, prayers: { fajr: true, dhuhr: true, asr: true, maghrib: true, isha: true } },
 };
 
 const day = (s, k = todayKey()) => s.days[k] || { azkar: {}, wird: {} };
@@ -109,7 +110,7 @@ export const useStore = create(
       merge: (persisted, current) => ({
         ...current,
         ...persisted,
-        settings: { ...current.settings, ...(persisted?.settings || {}), reminders: { ...current.settings.reminders, ...(persisted?.settings?.reminders || {}) } },
+        settings: { ...current.settings, ...(persisted?.settings || {}), reminders: { ...current.settings.reminders, ...(persisted?.settings?.reminders || {}) }, adhan: { ...current.settings.adhan, ...(persisted?.settings?.adhan || {}), prayers: { ...current.settings.adhan.prayers, ...(persisted?.settings?.adhan?.prayers || {}) } } },
         quran: { ...current.quran, ...(persisted?.quran || {}) },
         stories: { ...current.stories, ...(persisted?.stories || {}) },
         hifz: { ...current.hifz, ...(persisted?.hifz || {}), plan: { ...current.hifz.plan, ...(persisted?.hifz?.plan || {}) } },

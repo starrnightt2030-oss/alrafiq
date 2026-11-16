@@ -6,6 +6,10 @@ import { useRoute } from './router.js';
 import { sound } from './lib/sound.js';
 import { scheduleReminders } from './lib/notify.js';
 import Splash from './components/Splash.jsx';
+import AdhanOverlay from './components/AdhanOverlay.jsx';
+import { useAdhanWatcher } from './lib/adhan.js';
+import { resolveLocation } from './lib/prayer.js';
+import { showNotification } from './lib/notify.js';
 import BottomNav from './components/BottomNav.jsx';
 import { ToastHost } from './components/ui.jsx';
 import Home from './screens/Home.jsx';
@@ -64,6 +68,10 @@ export default function App() {
     return () => removeEventListener('pointerdown', unlock);
   }, []);
 
+  const [adhan, setAdhan] = useState(null);
+  useAdhanWatcher((p) => { setAdhan(p); showNotification('حان موعد أذان ' + p.name, 'حيّ على الصلاة — الرفيق'); });
+  const tz = resolveLocation(useStore.getState().settings.location).tz;
+
   const done = () => { setSplash(false); sessionStorageSet('rf-intro', '1'); };
 
   return (
@@ -74,6 +82,7 @@ export default function App() {
         <ToastHost />
       </div>
       <AnimatePresence>{splash && <Splash onDone={done} />}</AnimatePresence>
+      <AnimatePresence>{adhan && !splash && <AdhanOverlay prayer={adhan} tz={tz} onClose={() => setAdhan(null)} />}</AnimatePresence>
     </MotionConfig>
   );
 }

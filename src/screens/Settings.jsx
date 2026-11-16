@@ -10,11 +10,17 @@ import { checkForUpdate, applyUpdate } from '../lib/update.js';
 import { ar, arNum } from '../lib/arabic.js';
 import { Switch, Credit, toast } from '../components/ui.jsx';
 import logo from '../assets/logo.webp';
+import { playAdhan, stopAdhan, useAdhanState, MUEZZIN } from '../lib/adhan.js';
+import { FARD } from '../lib/stats.js';
+import { Megaphone, Square, Play } from 'lucide-react';
 
 export default function Settings() {
   const st = useStore((s) => s.settings);
   const setSetting = useStore((s) => s.setSetting);
   const [upd, setUpd] = useState({ state: 'idle' });
+  const adhanPlaying = useAdhanState().playing;
+  const ad = st.adhan;
+  const setAd = (patch) => setSetting('adhan', { ...ad, ...patch });
 
   const check = async () => {
     setUpd({ state: 'checking' });
@@ -58,6 +64,30 @@ export default function Settings() {
         )}
         <div className="set-row"><span className="row"><Vibrate size={18} className="accent" aria-hidden="true" />الاهتزاز مع العدّ</span><Switch label="الاهتزاز" checked={st.haptics} onChange={(v) => setSetting('haptics', v)} /></div>
         <div className="set-row"><span className="row"><Sparkles size={18} className="accent" aria-hidden="true" />المقدمة المتحركة عند الفتح</span><Switch label="المقدمة المتحركة" checked={st.intro} onChange={(v) => setSetting('intro', v)} /></div>
+      </section>
+
+      <section className="card">
+        <div className="set-row"><span className="row"><Megaphone size={18} className="accent" aria-hidden="true" /><span className="col" style={{ gap: 0 }}><span>الأذان</span><span className="xs muted">بصوت {MUEZZIN}</span></span></span><Switch label="الأذان" checked={ad.enabled} onChange={(v) => setAd({ enabled: v })} /></div>
+        {ad.enabled && (
+          <>
+            <div className="set-row" style={{ flexWrap: 'wrap', gap: 6, paddingBlock: 8 }}>
+              {FARD.map((p) => <button key={p.key} aria-pressed={ad.prayers[p.key]} className={'chip' + (ad.prayers[p.key] ? ' on' : '')} onClick={() => setAd({ prayers: { ...ad.prayers, [p.key]: !ad.prayers[p.key] } })}>{p.name}</button>)}
+            </div>
+            <div className="set-row"><span className="small">دعاء ما بعد الأذان بعده تلقائيًّا</span><Switch label="دعاء ما بعد الأذان" checked={ad.dua} onChange={(v) => setAd({ dua: v })} /></div>
+            <div className="set-row">
+              <label className="row" style={{ flex: 1 }}><span className="small muted" style={{ minWidth: 60 }}>صوت الأذان</span>
+                <input type="range" min="0.2" max="1" step="0.1" value={ad.volume} onChange={(e) => setAd({ volume: +e.target.value })} style={{ flex: 1 }} /></label>
+            </div>
+            <div className="set-row" style={{ gap: 8 }}>
+              {adhanPlaying ? <button className="btn soft" style={{ flex: 1, minHeight: 40, fontSize: 12 }} onClick={stopAdhan}><Square size={15} />إيقاف</button> : <>
+                <button className="btn soft" style={{ flex: 1, minHeight: 40, fontSize: 12 }} onClick={() => playAdhan('fajr')}><Play size={15} />أذان الفجر</button>
+                <button className="btn soft" style={{ flex: 1, minHeight: 40, fontSize: 12 }} onClick={() => playAdhan('dhuhr')}><Play size={15} />الأذان</button>
+                <button className="btn soft" style={{ flex: 1, minHeight: 40, fontSize: 12 }} onClick={() => playAdhan('dua')}><Play size={15} />الدعاء</button>
+              </>}
+            </div>
+            <div className="xs muted" style={{ lineHeight: 1.8, paddingBottom: 6 }}>يُرفع الأذان كاملًا والتطبيق مفتوح، ويظهر إشعار بدخول الوقت إن سمحت بالإشعارات.</div>
+          </>
+        )}
       </section>
 
       <section className="card">
