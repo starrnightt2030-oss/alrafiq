@@ -1,13 +1,16 @@
 // مكتبة القصص — كل مجموعة قائمة فصول، والفصل: { id, title, sub, body: [نص | { q: 'سورة:آية' }], lessons, src }
 import { SIRAH } from './sirah.js';
 import { GHAZAWAT } from './ghazawat.js';
+import { SAHABA } from './sahaba.js';
+import { ANBIYA } from './anbiya.js';
+import { IBAR } from './ibar.js';
 
 export const COLLECTIONS = [
   { id: 'sirah', title: 'السيرة النبوية', desc: 'من المولد الشريف إلى الرفيق الأعلى', items: SIRAH },
   { id: 'ghazawat', title: 'الغزوات', desc: 'بدر · أحد · الخندق · خيبر · مؤتة · الفتح · حنين · تبوك', items: GHAZAWAT },
-  { id: 'sahaba', title: 'الصحابة الأجلاء', desc: 'العشرة المبشرون بالجنة وأعلام الصحابة', items: [], soon: true },
-  { id: 'anbiya', title: 'قصص الأنبياء', desc: 'كما وردت في القرآن الكريم', items: [], soon: true },
-  { id: 'ibar', title: 'قصص فيها عبرة', desc: 'من القرآن والسنة الصحيحة', items: [], soon: true },
+  { id: 'sahaba', title: 'الصحابة الأجلاء', desc: 'العشرة المبشرون بالجنة وأعلام الصحابة والصحابيات', items: SAHABA },
+  { id: 'anbiya', title: 'قصص الأنبياء', desc: 'آدم · نوح · إبراهيم · يوسف · موسى · يونس · أيوب · عيسى', items: ANBIYA },
+  { id: 'ibar', title: 'قصص فيها عبرة', desc: 'من القرآن الكريم والسنة الصحيحة', items: IBAR },
 ];
 
 export const STORY = {};
