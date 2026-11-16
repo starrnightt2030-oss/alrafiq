@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { BookMarked, Bookmark, Search, ChevronLeft } from 'lucide-react';
+import { BookMarked, Bookmark, Search, ChevronLeft, GraduationCap } from 'lucide-react';
 import { useStore } from '../store.js';
 import { SURAHS, JUZ, surahAt } from '../lib/quran.js';
 import { ar } from '../lib/arabic.js';
@@ -24,6 +24,12 @@ export default function QuranIndex() {
           <div className="h2">سورة {s.name} · صفحة {ar(quran.lastPage)}</div>
         </div>
         <ChevronLeft size={20} style={{ color: 'var(--heroText)' }} aria-hidden="true" />
+      </a>
+
+      <a href="#/hifz" className="card row" style={{ textDecoration: 'none', color: 'var(--text)' }}>
+        <GraduationCap size={26} className="accent" aria-hidden="true" />
+        <div style={{ flex: 1 }}><div className="h2">متابعة الحفظ</div><div className="xs muted">ورد الحفظ اليومي والمراجعة وخريطة الأجزاء</div></div>
+        <ChevronLeft size={20} className="muted" aria-hidden="true" />
       </a>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 4, padding: 4, borderRadius: 16, background: 'var(--surf2)' }} role="tablist">

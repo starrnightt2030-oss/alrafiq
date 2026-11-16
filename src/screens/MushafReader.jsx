@@ -7,6 +7,10 @@ import { ar } from '../lib/arabic.js';
 import { vibrate } from '../lib/haptics.js';
 import { go } from '../router.js';
 import Q from '../data/quranSnippets.json';
+import { firstMemorize, schedule, dueReviews } from '../lib/hifz.js';
+import { toast } from '../components/ui.jsx';
+import { sound } from '../lib/sound.js';
+import { Eye, EyeOff } from 'lucide-react';
 
 function SuraHead({ name }) {
   return (
@@ -21,7 +25,7 @@ function SuraHead({ name }) {
   );
 }
 
-function Page({ n, ayahs, width, height }) {
+function Page({ n, ayahs, width, height, hidden }) {
   const inner = useRef(null);
   const blocks = pageBlocks(ayahs);
   const special = n <= 2;
@@ -47,7 +51,7 @@ function Page({ n, ayahs, width, height }) {
 
   return (
     <div className="mushaf-page" style={{ width, height }}>
-      <div ref={inner} className="mushaf-inner" style={{ justifyContent: special ? 'center' : 'flex-start' }} lang="ar">
+      <div ref={inner} className="mushaf-inner" style={{ justifyContent: special ? 'center' : 'flex-start', filter: hidden ? 'blur(7px)' : 'none', transition: 'filter .3s' }} lang="ar">
         {blocks.map((b, i) => b.type === 'head' ? <SuraHead key={i} name={b.name} />
           : b.type === 'basmala' ? <div key={i} className="basmala">{Q.basmala}</div>
           : <p key={i} className="mushaf-text" style={{ margin: 0, textAlignLast: special ? 'center' : (i === blocks.length - 1 && n !== 604 ? 'justify' : 'center') }}>
@@ -58,7 +62,7 @@ function Page({ n, ayahs, width, height }) {
   );
 }
 
-export default function MushafReader({ page: initial }) {
+export default function MushafReader({ page: initial, mode }) {
   const { data, error } = useQuran();
   const setLastPage = useStore((s) => s.setLastPage);
   const markPage = useStore((s) => s.markPage);
@@ -67,11 +71,21 @@ export default function MushafReader({ page: initial }) {
   const [page, setPage] = useState(() => Math.min(TOTAL_PAGES, Math.max(1, initial || 1)));
   const [dir, setDir] = useState(1);
   const [size, setSize] = useState({ w: 360, h: 560 });
+  const [hidden, setHidden] = useState(false);
+  const hifzPage = useStore((s) => s.hifz.pages[page]);
+  const updateHifz = useStore((s) => s.updateHifz);
+  const learn = () => { updateHifz({ [page]: firstMemorize() }, 'new', 15); sound.next(); toast('أُضيفت الصفحة إلى محفوظك — ستراجعها غدًا بإذن الله (+١٥ نقطة)'); go('/hifz'); };
+  const rate = (r) => {
+    updateHifz({ [page]: schedule(hifzPage, r) }, 'rev', 5); sound.tap(); setHidden(false);
+    const next = dueReviews(useStore.getState().hifz, 1)[0];
+    if (next) { toast('تمت المراجعة — التالية صفحة ' + ar(next)); setDir(next > page ? 1 : -1); setPage(next); }
+    else { toast('أتممت مراجعة اليوم — بارك الله فيك'); go('/hifz'); }
+  };
 
   useEffect(() => {
     const calc = () => {
       const vh = window.innerHeight, vw = Math.min(window.innerWidth, 520);
-      const h = Math.max(380, vh - 150), w = Math.min(vw - 20, h * 0.66);
+      const h = Math.max(380, vh - (mode ? 260 : 150)), w = Math.min(vw - 20, h * 0.66);
       setSize({ w: Math.round(w), h: Math.round(Math.min(h, w / 0.62)) });
     };
     calc(); addEventListener('resize', calc); return () => removeEventListener('resize', calc);
@@ -79,7 +93,7 @@ export default function MushafReader({ page: initial }) {
 
   useEffect(() => { if (initial && initial !== page) { setDir(initial > page ? 1 : -1); setPage(Math.min(TOTAL_PAGES, Math.max(1, initial))); } }, [initial]); // eslint-disable-line
   useEffect(() => { const t = setTimeout(() => markPage(page), 4000); return () => clearTimeout(t); }, [page]); // eslint-disable-line
-  useEffect(() => { setLastPage(page); history.replaceState(null, '', '#/quran/' + page); }, [page]); // eslint-disable-line
+  useEffect(() => { setLastPage(page); history.replaceState(null, '', '#/quran/' + page + (mode ? '/' + mode : '')); }, [page]); // eslint-disable-line
 
   const turn = (d) => { const p = page + d; if (p < 1 || p > TOTAL_PAGES) return; setDir(d); setPage(p); vibrate(6); };
   const marked = bookmarks.includes(page);
@@ -106,7 +120,7 @@ export default function MushafReader({ page: initial }) {
               drag="x" dragConstraints={{ left: 0, right: 0 }} dragElastic={0.35}
               onDragEnd={(_, info) => { if (info.offset.x > 70) turn(1); else if (info.offset.x < -70) turn(-1); }}
               style={{ position: 'absolute', inset: 0, touchAction: 'pan-y' }}>
-              <Page n={page} ayahs={data.pages[page]} width={size.w} height={size.h} />
+              <Page n={page} ayahs={data.pages[page]} width={size.w} height={size.h} hidden={hidden} />
             </motion.div>
           </AnimatePresence>
         )}
@@ -121,6 +135,23 @@ export default function MushafReader({ page: initial }) {
         </label>
         <button className="icon-btn" aria-label="الصفحة التالية" disabled={page >= TOTAL_PAGES} onClick={() => turn(1)}><ChevronLeft size={20} /></button>
       </div>
+      {mode && (
+        <div className="card col" style={{ width: '100%', maxWidth: 500, gap: 10, padding: 12 }}>
+          <div className="between">
+            <span className="small" style={{ fontWeight: 600 }}>{mode === 'hifz' ? 'حفظ صفحة ' + ar(page) : 'مراجعة صفحة ' + ar(page)}</span>
+            <button className="btn ghost" style={{ minHeight: 36, padding: '0 12px', fontSize: 12 }} onClick={() => setHidden(!hidden)}>{hidden ? <><Eye size={15} />إظهار النص</> : <><EyeOff size={15} />اختبر نفسك</>}</button>
+          </div>
+          {mode === 'hifz' ? (
+            <button className="btn" onClick={learn}>أتممت حفظ هذه الصفحة</button>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 8 }}>
+              <button className="btn ghost" style={{ fontSize: 12 }} onClick={() => rate('again')}>أحتاج مراجعة</button>
+              <button className="btn soft" style={{ fontSize: 12 }} onClick={() => rate('good')}>جيد</button>
+              <button className="btn" style={{ fontSize: 12 }} onClick={() => rate('easy')}>متقن</button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

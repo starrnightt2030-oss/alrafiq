@@ -35,6 +35,17 @@ export const useStore = create(
       firstDay: null,
       challenge: { i: 0, start: null, done: [] },
       stories: { last: null, pos: {}, marks: [], done: [] },
+      hifz: { plan: { dir: 'back', daily: 1, started: null }, pages: {}, log: {} },
+
+      setHifzPlan: (plan) => set((s) => ({ hifz: { ...s.hifz, plan: { ...s.hifz.plan, ...plan, started: s.hifz.plan.started || todayKey() } } })),
+      // تحديث صفحات الحفظ: updates = { [page]: state | null }، kind = 'new' | 'rev' | null للتسجيل اليومي
+      updateHifz: (updates, kind = null, pts = 0) => set((s) => {
+        const pages = { ...s.hifz.pages };
+        for (const [p, v] of Object.entries(updates)) { if (v) pages[p] = v; else delete pages[p]; }
+        const k = todayKey(); const lg = { ...(s.hifz.log[k] || { new: 0, rev: 0 }) };
+        if (kind) lg[kind] += Object.keys(updates).length;
+        return { points: s.points + pts, hifz: { ...s.hifz, pages, log: kind ? { ...s.hifz.log, [k]: lg } : s.hifz.log } };
+      }),
 
       saveStoryPos: (id, pct) => set((s) => ({ stories: { ...s.stories, last: id, pos: { ...s.stories.pos, [id]: pct } } })),
       toggleStoryMark: (id) => set((s) => ({ stories: { ...s.stories, marks: s.stories.marks.includes(id) ? s.stories.marks.filter((x) => x !== id) : [...s.stories.marks, id] } })),
@@ -101,6 +112,7 @@ export const useStore = create(
         settings: { ...current.settings, ...(persisted?.settings || {}), reminders: { ...current.settings.reminders, ...(persisted?.settings?.reminders || {}) } },
         quran: { ...current.quran, ...(persisted?.quran || {}) },
         stories: { ...current.stories, ...(persisted?.stories || {}) },
+        hifz: { ...current.hifz, ...(persisted?.hifz || {}), plan: { ...current.hifz.plan, ...(persisted?.hifz?.plan || {}) } },
         challenge: { ...current.challenge, ...(persisted?.challenge || {}) },
       }),
       migrate: (state) => state,

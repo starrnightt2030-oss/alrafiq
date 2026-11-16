@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { useStore } from '../store.js';
 import { rangeKeys, summarize, grade, weekly, insights, dayName, dayShort, FARD } from '../lib/stats.js';
-import { ar, arNum, daysAr } from '../lib/arabic.js';
+import { ar, arNum, daysAr, pagesAr } from '../lib/arabic.js';
 import { TopBar, Ring } from '../components/ui.jsx';
 
 const PERIODS = [{ n: 7, l: 'أسبوع' }, { n: 30, l: 'شهر' }, { n: 90, l: '٣ أشهر' }];
@@ -11,7 +11,7 @@ const COLORS = { jamaah: 'var(--acc)', ontime: 'color-mix(in srgb, var(--acc) 70
 
 export default function Report() {
   const [pi, setPi] = useState(0);
-  const { days, settings, firstDay } = useStore();
+  const { days, settings, firstDay, hifz } = useStore();
   const n = PERIODS[pi].n;
   const cur = useMemo(() => summarize(days, rangeKeys(n, 0, firstDay), settings.wirdGoal), [days, n, firstDay, settings.wirdGoal]);
   const prev = useMemo(() => summarize(days, rangeKeys(n, n, firstDay), settings.wirdGoal), [days, n, firstDay, settings.wirdGoal]);
@@ -19,6 +19,7 @@ export default function Report() {
   const notes = insights(cur);
   const bars = n === 7 ? cur.daily : weekly(cur.daily);
   const onTimeCount = cur.counts.ontime + cur.counts.jamaah;
+  const hz = cur.daily.reduce((a, d) => { const l = hifz.log[d.k]; return l ? { n: a.n + l.new, r: a.r + l.rev } : a; }, { n: 0, r: 0 });
 
   return (
     <div className="screen no-nav">
@@ -59,6 +60,11 @@ export default function Report() {
           </div>
         ))}
       </div>
+
+      <a href="#/hifz" className="card between" style={{ textDecoration: 'none', color: 'var(--text)' }}>
+        <span className="h2">حفظ القرآن</span>
+        <span className="small muted">حفظ جديد: {hz.n ? pagesAr(hz.n) : 'لا شيء'} · مراجعة: {ar(hz.r)}</span>
+      </a>
 
       <section className="card">
         <div className="between"><h2 className="h2">{n === 7 ? 'الصلوات يومًا بيوم' : 'الدرجة أسبوعًا بأسبوع'}</h2></div>

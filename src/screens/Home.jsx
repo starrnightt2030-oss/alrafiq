@@ -1,4 +1,4 @@
-import { BookOpen, CircleDot, HandHeart, ShieldCheck, Headphones, BookMarked, Trophy, Flame, Sunrise, Sunset, BellRing, ChartColumn, CheckCircle2 } from 'lucide-react';
+import { BookOpen, CircleDot, HandHeart, ShieldCheck, Headphones, BookMarked, Trophy, Flame, Sunrise, Sunset, BellRing, ChartColumn, CheckCircle2, GraduationCap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useStore, streakOf } from '../store.js';
 import { THEMES, THEME_ORDER } from '../themes.js';
@@ -17,7 +17,7 @@ import { vibrate } from '../lib/haptics.js';
 const TILES = [
   { to: '/azkar', label: 'الأذكار', Icon: BookOpen },
   { to: '/wird', label: 'الورد', Icon: CircleDot },
-  { to: '/quran', label: 'المصحف', Icon: BookMarked },
+  { to: '/hifz', label: 'الحفظ', Icon: GraduationCap },
     { to: '/duas', label: 'الأدعية', Icon: HandHeart },
   { to: '/ruqyah', label: 'الرقية', Icon: ShieldCheck },
   { to: '/challenges', label: 'التحديات', Icon: Trophy },
