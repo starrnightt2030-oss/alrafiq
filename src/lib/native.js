@@ -54,6 +54,16 @@ export async function rescheduleNative() {
         const n = NUDGES[(d + now.getDate()) % NUDGES.length]; const tn = at(day, '13:20');
         if (tn > now) list.push({ id: d * 100 + 12, title: n[0], body: n[1], channelId: 'rafiq', schedule: { at: tn, allowWhileIdle: true }, extra: { href: n[2] }, smallIcon: 'ic_stat_rafiq', iconColor: '#D9B55A' });
       }
+      // تذكيرات الجمعة: الكهف صباحًا، والاستعداد قبل الظهر، وساعة الإجابة قبل المغرب
+      if (s.friday !== false && day.getDay() === 5) {
+        const tt = timesFor(place, day); const dh = tt.find((p) => p.key === 'dhuhr')?.time; const mg = tt.find((p) => p.key === 'maghrib')?.time;
+        const fri = [
+          [20, at(day, '09:00'), 'جمعة مباركة', 'سورة الكهف نور ما بين الجمعتين — افتح المصحف واقرأها الآن.', '#/quran/293'],
+          [21, dh && new Date(dh - 75 * 60000), 'استعد لصلاة الجمعة', 'اغتسل وتطيّب والبس أحسن هدومك وبكّر للمسجد.', '#/prayer'],
+          [22, mg && new Date(mg - 60 * 60000), 'ساعة الإجابة', 'آخر ساعة قبل المغرب يوم الجمعة — ادعُ الله بما تحب.', '#/duas'],
+        ];
+        for (const [id, when, title, body, href] of fri) if (when && when > now) list.push({ id: d * 100 + id, title, body, channelId: 'rafiq', schedule: { at: when, allowWhileIdle: true }, extra: { href }, smallIcon: 'ic_stat_rafiq', iconColor: '#D9B55A' });
+      }
     }
     if (list.length) await LocalNotifications.schedule({ notifications: list });
   } catch (e) { console.warn('native notifications', e); }
@@ -66,7 +76,7 @@ export function setupNative() {
   CapApp.addListener('resume', () => rescheduleNative());
   let t = null;
   const unsub = useStore.subscribe((s, p) => {
-    if (s.settings.adhan !== p.settings.adhan || s.settings.reminders !== p.settings.reminders || s.settings.location !== p.settings.location) { clearTimeout(t); t = setTimeout(rescheduleNative, 1200); }
+    if (s.settings.adhan !== p.settings.adhan || s.settings.reminders !== p.settings.reminders || s.settings.location !== p.settings.location || s.settings.friday !== p.settings.friday) { clearTimeout(t); t = setTimeout(rescheduleNative, 1200); }
     if (s.settings.theme !== p.settings.theme) styleBar(s.settings.theme);
   });
   styleBar(useStore.getState().settings.theme);

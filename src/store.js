@@ -20,6 +20,7 @@ const defaultSettings = {
   quranScale: 1,
   textScale: 1,
   wirdGoal: 1000,
+  friday: true,
   adhan: { enabled: true, volume: 1, dua: true, prayers: { fajr: true, dhuhr: true, asr: true, maghrib: true, isha: true } },
 };
 
@@ -40,6 +41,8 @@ export const useStore = create(
       inbox: [],
       sent: {},
       quiz: { seen: {}, history: [], best: 0, names: [], current: null },
+      backupAt: null,
+      markBackup: () => set({ backupAt: Date.now() }),
 
       // «فاستبقوا الخيرات»: seen يحفظ وقت آخر ظهور لكل سؤال حتى لا يتكرر في المحاولات التالية
       saveQuizGame: (current) => set((s) => ({ quiz: { ...s.quiz, current } })),

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { MapPin, LocateFixed, BellRing } from 'lucide-react';
+import { MapPin, LocateFixed, BellRing, Compass, ChevronLeft } from 'lucide-react';
+import { qiblaBearing, dirName } from '../lib/qibla.js';
 import { useStore } from '../store.js';
 import { CITIES, METHODS } from '../data/cities.js';
 import { resolveLocation, timesFor, nextPrayer, fmtTime, countdown } from '../lib/prayer.js';
@@ -56,6 +57,12 @@ export default function Prayer() {
         </div>
         <div className="row xs" style={{ marginTop: 12, opacity: .9 }}><MapPin size={14} aria-hidden="true" />{place.country ? place.country + ' · ' : ''}{place.name}</div>
       </section>
+
+      <a href="#/qibla" className="card row" style={{ textDecoration: 'none', color: 'var(--text)', gap: 12 }}>
+        <span className="bp-ic" style={{ width: 44, height: 44, borderRadius: 14 }}><Compass size={22} /></span>
+        <span className="col" style={{ flex: 1, gap: 2 }}><b>اتجاه القبلة</b><span className="xs muted">{ar(Math.round(qiblaBearing(place.lat, place.lng)))}° من الشمال — {dirName(qiblaBearing(place.lat, place.lng))}</span></span>
+        <ChevronLeft size={18} className="muted" />
+      </a>
 
       <div className="between">
         <h2 className="h2">صلواتك وسجلّك</h2>

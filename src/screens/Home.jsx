@@ -1,4 +1,4 @@
-import { BookOpen, CircleDot, HandHeart, ShieldCheck, Headphones, BookMarked, Trophy, Flame, Sunrise, Sunset, BellRing, ChartColumn, CheckCircle2, GraduationCap, MessageCircleHeart } from 'lucide-react';
+import { BookOpen, CircleDot, HandHeart, ShieldCheck, Headphones, BookMarked, Trophy, Flame, Sunrise, Sunset, BellRing, ChartColumn, CheckCircle2, GraduationCap, MessageCircleHeart, Compass } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useStore, streakOf } from '../store.js';
 import { THEMES, THEME_ORDER } from '../themes.js';
@@ -64,10 +64,13 @@ export default function Home() {
           <div className="xs muted">{hijri(now)}</div>
         </div>
         <div className="col" style={{ alignItems: 'flex-end', gap: 8 }}>
+        <div className="row" style={{ gap: 8 }}>
+        <a href="#/qibla" className="icon-btn" aria-label="اتجاه القبلة"><Compass size={20} /></a>
         <a href="#/inbox" className="icon-btn" aria-label={unread ? `رسائل الرفيق — ${unread} جديدة` : 'رسائل الرفيق'} style={{ position: 'relative' }}>
           <MessageCircleHeart size={20} />
           {unread > 0 && <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ position: 'absolute', top: -5, left: -5, minWidth: 20, height: 20, padding: '0 5px', borderRadius: 999, background: '#E3A14A', color: '#1B1405', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--bg)' }}>{ar(unread)}</motion.span>}
         </a>
+        </div>
         <div className="row" style={{ gap: 6, padding: 6, borderRadius: 999, background: 'var(--surf)', border: '1px solid var(--line)' }} role="radiogroup" aria-label="الثيم">
           {THEME_ORDER.map((id) => (
             <button key={id} role="radio" aria-checked={settings.theme === id} aria-label={'ثيم ' + THEMES[id].name} onClick={() => setSetting('theme', id)}

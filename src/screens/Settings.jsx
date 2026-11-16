@@ -7,7 +7,7 @@ import { APP } from '../config.js';
 import { sound } from '../lib/sound.js';
 import { askPermission, scheduleReminders } from '../lib/notify.js';
 import { checkForUpdate, applyUpdate } from '../lib/update.js';
-import { ar, arNum } from '../lib/arabic.js';
+import { ar, arNum, daysAr, pagesAr } from '../lib/arabic.js';
 import { Switch, Credit, toast } from '../components/ui.jsx';
 import logo from '../assets/logo.webp';
 import { playAdhan, stopAdhan, useAdhanState, MUEZZIN } from '../lib/adhan.js';
@@ -15,6 +15,9 @@ import { FARD } from '../lib/stats.js';
 import { Megaphone, Square, Play, Smartphone } from 'lucide-react';
 import { isNative } from '../lib/native.js';
 import { APK_URL } from '../lib/update.js';
+import { CalendarHeart, DatabaseBackup, Upload, ShieldCheck } from 'lucide-react';
+import { exportBackup, readBackup, restoreBackup, summary } from '../lib/backup.js';
+import { useRef } from 'react';
 
 export default function Settings() {
   const st = useStore((s) => s.settings);
@@ -100,6 +103,8 @@ export default function Settings() {
             <label className="set-row"><span className="small">أذكار المساء</span><input className="inp" type="time" value={st.reminders.evening} onChange={(e) => { setSetting('reminders', { ...st.reminders, evening: e.target.value }); setTimeout(scheduleReminders, 0); }} /></label>
           </>
         )}
+        <div className="set-row"><span className="row"><CalendarHeart size={18} className="accent" aria-hidden="true" />تذكيرات يوم الجمعة</span><Switch label="تذكيرات الجمعة" checked={st.friday !== false} onChange={(v) => setSetting('friday', v)} /></div>
+        {st.friday !== false && <div className="xs muted" style={{ lineHeight: 1.8, padding: '0 2px 6px' }}>سورة الكهف من مغرب الخميس، والاستعداد لصلاة الجمعة، وتحدي الصلاة على النبي ﷺ، وساعة الإجابة قبل المغرب</div>}
         <div className="set-row">
           <span className="row"><Target size={18} className="accent" aria-hidden="true" />هدف الورد اليومي</span>
           <select className="sel" value={st.wirdGoal} onChange={(e) => setSetting('wirdGoal', +e.target.value)}>
@@ -107,6 +112,8 @@ export default function Settings() {
           </select>
         </div>
       </section>
+
+      <Backup />
 
       <section className="card col center" style={{ alignItems: 'center', gap: 12, position: 'relative', overflow: 'hidden' }}>
         <img src={logo} alt="" width="84" height="84" style={{ borderRadius: 22, boxShadow: '0 12px 30px -12px rgba(0,0,0,.5)' }} />
@@ -146,5 +153,45 @@ export default function Settings() {
 
       <Credit />
     </div>
+  );
+}
+
+function Backup() {
+  const backupAt = useStore((s) => s.backupAt);
+  const [pending, setPending] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const input = useRef(null);
+  const fmt = (t) => new Intl.DateTimeFormat('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(t));
+  const doExport = async () => {
+    setBusy(true);
+    try { const r = await exportBackup(); if (r === 'downloaded') toast('تم حفظ النسخة في التنزيلات — انقلها لمكان آمن'); else if (r === 'shared') toast('تم تجهيز النسخة الاحتياطية'); }
+    catch { toast('تعذّر إنشاء النسخة — جرّب مرة تانية'); } finally { setBusy(false); }
+  };
+  const pick = async (e) => {
+    const f = e.target.files?.[0]; e.target.value = ''; if (!f) return;
+    try { setPending(await readBackup(f)); } catch (err) { toast(err.message || 'الملف غير صالح'); }
+  };
+  const sm = pending && summary(pending.data);
+  return (
+    <section className="card col" style={{ gap: 10 }}>
+      <div className="row h2"><DatabaseBackup size={18} className="accent" aria-hidden="true" />بياناتك والنسخة الاحتياطية</div>
+      <div className="xs muted" style={{ lineHeight: 1.9 }}>كل تقدّمك (الحفظ، الأوراد، الصلوات، النقاط، القصص، المسابقة) محفوظ على الجهاز ده بس. خد نسخة واحفظها في Drive أو ابعتها لنفسك، وتقدر ترجّعها على أي موبايل.</div>
+      <div className="row xs" style={{ gap: 6, color: backupAt ? '#5FC59A' : '#E3A14A' }}><ShieldCheck size={14} />{backupAt ? `آخر نسخة: ${fmt(backupAt)}` : 'لسه ماخدتش نسخة احتياطية'}</div>
+      <div className="grid2">
+        <button className="btn" onClick={doExport} disabled={busy}><Download size={16} /> {busy ? 'جارٍ…' : 'حفظ نسخة'}</button>
+        <button className="btn soft" onClick={() => input.current?.click()}><Upload size={16} /> استعادة</button>
+      </div>
+      <input ref={input} type="file" accept="application/json,.json" onChange={pick} hidden />
+      {pending && (
+        <motion.div className="card col" style={{ gap: 8, background: 'var(--surf2)', borderColor: 'var(--acc)' }} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+          <b className="small">استعادة نسخة {fmt(pending.at)}؟</b>
+          <div className="xs muted" style={{ lineHeight: 1.9 }}>فيها نشاط {daysAr(sm.days)}، و{pagesAr(sm.hifz)} محفوظة، و{arNum(sm.points)} نقطة. البيانات الحالية على الجهاز ده هتتستبدل بيها.</div>
+          <div className="grid2">
+            <button className="btn" onClick={() => { restoreBackup(pending); toast('تمت الاستعادة — جارٍ إعادة التشغيل'); }}>استعادة</button>
+            <button className="btn ghost" onClick={() => setPending(null)}>إلغاء</button>
+          </div>
+        </motion.div>
+      )}
+    </section>
   );
 }

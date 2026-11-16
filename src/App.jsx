@@ -16,6 +16,7 @@ import { startCompanion } from './lib/companion.js';
 import { setupNative, isNative } from './lib/native.js';
 import Inbox from './screens/Inbox.jsx';
 import Quiz from './screens/Quiz.jsx';
+import Qibla from './screens/Qibla.jsx';
 import Home from './screens/Home.jsx';
 import AzkarIndex from './screens/AzkarIndex.jsx';
 import AzkarReader from './screens/AzkarReader.jsx';
@@ -47,6 +48,7 @@ function Screen({ route }) {
     case 'challenges': return <Challenges />;
     case 'inbox': return <Inbox />;
     case 'quiz': return <Quiz />;
+    case 'qibla': return <Qibla />;
     case 'stories': return b ? <StoryList col={b} /> : <StoriesHome />;
     case 'story': return <StoryReader key={b} id={b} />;
     case 'wird': return <Wird />;
@@ -59,7 +61,7 @@ function Screen({ route }) {
   }
 }
 
-const FULL = (r) => (r[0] === 'azkar' && r[1]) || ['hisn', 'wird', 'ruqyah', 'duas', 'report', 'challenges', 'stories', 'story', 'hifz', 'inbox', 'quiz'].includes(r[0]) || (r[0] === 'quran' && r[1]);
+const FULL = (r) => (r[0] === 'azkar' && r[1]) || ['hisn', 'wird', 'ruqyah', 'duas', 'report', 'challenges', 'stories', 'story', 'hifz', 'inbox', 'quiz', 'qibla'].includes(r[0]) || (r[0] === 'quran' && r[1]);
 
 export default function App() {
   const theme = useStore((s) => s.settings.theme);

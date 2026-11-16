@@ -82,14 +82,30 @@ function rules(s) {
   const last = past[past.length - 1];
   if (last && !day.prayers?.[last.key]) { const mins = (now - last.time) / 60000; if (mins > 40 && mins < 180) out.push({ key: `pray-${last.key}-${t}`, icon: 'bell', tone: 'remind', title: `صلّيت ${last.name}؟`, body: 'سجّلها علشان تقييمك يبقى دقيق — وجماعة يبقى أحسن وأحسن!', cta: { label: 'سجّل', href: '#/prayer' } }); }
 
-  // الجمعة والصيام
+  // الجمعة: الكهف من مغرب الخميس، والاستعداد للجمعة، والصلاة على النبي ﷺ، وساعة الإجابة آخر ساعة قبل المغرب
   const wd = now.getDay();
-  if (wd === 5 && H >= 7) out.push({ key: 'kahf-' + t, icon: 'book', tone: 'remind', title: 'جمعة مباركة', body: 'سورة الكهف نور ما بين الجمعتين، وأكثِر من الصلاة على النبي ﷺ النهارده.', cta: { label: 'اقرأ الكهف', href: '#/quran/' + meta.surahs[17].page } });
+  const kahfP = meta.surahs[17].page, kahfEnd = meta.surahs[18].page - 1;
+  const today = timesFor(place, now); const maghrib = today.find((p) => p.key === 'maghrib')?.time; const dhuhr = today.find((p) => p.key === 'dhuhr')?.time;
+  if (s.settings.friday !== false) {
+    if (wd === 4 && maghrib && now > maghrib) out.push({ key: 'kahf-eve-' + t, icon: 'moon', tone: 'cheer', title: 'الليلة ليلة الجمعة', body: 'وقت سورة الكهف بيبدأ من مغرب النهارده — تقرأها الليلة وتبقى خلّصتها بدري؟', cta: { label: 'اقرأ الكهف', href: '#/quran/' + kahfP } });
+    if (wd === 5) {
+      const read = (day.pages || []).filter((p) => p >= kahfP && p <= kahfEnd).length; const total = kahfEnd - kahfP + 1;
+      if (H >= 7 && read < total) out.push({ key: 'kahf-' + t, icon: 'book', tone: 'remind', title: 'جمعة مباركة', body: read ? `قرأت ${ar(read)} من ${ar(total)} صفحة من الكهف — كمّلها، «أضاء له من النور ما بين الجمعتين».` : '«من قرأ سورة الكهف يوم الجمعة أضاء له من النور ما بين الجمعتين». خلّيها أول حاجة النهارده.', cta: { label: read ? 'كمّل الكهف' : 'اقرأ الكهف', href: '#/quran/' + (read ? Math.min(kahfEnd, kahfP + read) : kahfP) } });
+      if (read >= total) out.push({ key: 'kahf-done-' + t, icon: 'trophy', tone: 'celebrate', title: 'خلّصت سورة الكهف!', body: 'نور ما بين الجمعتين بإذن الله. تقبّل الله منك.', cta: { label: 'صلِّ على النبي ﷺ', href: '#/wird' } });
+      if (dhuhr && now < dhuhr && dhuhr - now < 100 * 60) out.push({ key: 'jumua-' + t, icon: 'bell', tone: 'remind', title: 'استعد لصلاة الجمعة', body: 'اغتسل، والبس أحسن هدومك، وتطيّب، وبكّر — «من راح في الساعة الأولى فكأنما قرّب بدنة».', cta: null });
+      if (H >= 14 && (!maghrib || now < maghrib - 60 * 60000)) out.push({ key: 'salawat-fri-' + t, icon: 'heart', tone: 'challenge', title: 'تحدي الجمعة', body: '«أكثروا عليّ من الصلاة يوم الجمعة» — تقدر توصل ١٠٠ صلاة على النبي ﷺ قبل المغرب؟', cta: { label: 'ابدأ العدّ', href: '#/wird' } });
+      if (maghrib && now >= maghrib - 60 * 60000 && now < maghrib) out.push({ key: 'ijaba-' + t, icon: 'star', tone: 'remind', title: 'ساعة الإجابة', body: 'آخر ساعة بعد العصر يوم الجمعة «لا يسأل الله فيها عبد مسلم شيئًا إلا أعطاه». ادعِ لنفسك وللي بتحبهم.', cta: { label: 'أدعية مختارة', href: '#/duas' } });
+    }
+  }
   if ((wd === 0 || wd === 3) && H >= 18) out.push({ key: 'fast-' + t, icon: 'moon', tone: 'cheer', title: wd === 0 ? 'بكرة الاثنين' : 'بكرة الخميس', body: '«تُعرض الأعمال يوم الاثنين والخميس، فأحب أن يُعرض عملي وأنا صائم» — ما تيجي نصوم؟', cta: null });
 
   // مراجعة الحفظ
   const due = dueReviews(s.hifz, 50).length;
   if (due > 0 && H >= 8) out.push({ key: 'hifz-' + t, icon: 'book', tone: 'remind', title: `عندك ${ar(due)} ${due > 2 && due < 11 ? 'صفحات' : 'صفحة'} مراجعة`, body: 'المراجعة هي اللي بتثبّت الحفظ. خلّصها وانت مرتاح.', cta: { label: 'راجع', href: '#/hifz' } });
+
+  // تذكير بالنسخة الاحتياطية بعد أسبوع استخدام، ثم كل شهر
+  const used = s.firstDay ? (now - new Date(s.firstDay)) / 864e5 : 0;
+  if (used >= 7 && (!s.backupAt || now - s.backupAt > 30 * 864e5)) { const mk = now.toISOString().slice(0, 7); out.push({ key: 'backup-' + mk, icon: 'star', tone: 'remind', title: 'احمِ تقدّمك', body: 'كل حفظك وأورادك ونقاطك متسجلة على الموبايل ده بس. خد نسخة احتياطية في ثانية واحفظها في Drive أو ابعتها لنفسك.', cta: { label: 'نسخة احتياطية', href: '#/settings' } }); }
 
   // المستوى
   const level = 1 + Math.floor(s.points / 500);
