@@ -32,12 +32,14 @@ import { StoriesHome, StoryList } from './screens/Stories.jsx';
 import StoryReader from './screens/StoryReader.jsx';
 import { AZKAR } from './data/azkar.js';
 import { RUQYAH } from './data/ruqyah.js';
+import { HISN } from './data/hisn.js';
 
 function Screen({ route }) {
   const [a, b] = route;
   switch (a) {
     case undefined: return <Home />;
     case 'azkar': return b ? <AzkarReader key={b} set={AZKAR[b]} /> : <AzkarIndex />;
+    case 'hisn': return <AzkarReader key={'h' + b} set={HISN[b]} fallback="/azkar" />;
     case 'ruqyah': return <AzkarReader key="ruqyah" set={RUQYAH} fallback="/azkar" />;
     case 'duas': return <Duas />;
     case 'report': return <Report />;
@@ -55,7 +57,7 @@ function Screen({ route }) {
   }
 }
 
-const FULL = (r) => (r[0] === 'azkar' && r[1]) || ['wird', 'ruqyah', 'duas', 'report', 'challenges', 'stories', 'story', 'hifz', 'inbox'].includes(r[0]) || (r[0] === 'quran' && r[1]);
+const FULL = (r) => (r[0] === 'azkar' && r[1]) || ['hisn', 'wird', 'ruqyah', 'duas', 'report', 'challenges', 'stories', 'story', 'hifz', 'inbox'].includes(r[0]) || (r[0] === 'quran' && r[1]);
 
 export default function App() {
   const theme = useStore((s) => s.settings.theme);

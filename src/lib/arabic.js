@@ -14,3 +14,4 @@ export const gregorian = (d = new Date()) => new Intl.DateTimeFormat('ar-EG', { 
 export const daysAr = (n) => n === 1 ? 'يوم واحد' : n === 2 ? 'يومان' : n <= 10 ? `${ar(n)} أيام` : `${ar(n)} يومًا`;
 export const minutesAr = (n) => n === 1 ? 'دقيقة واحدة' : n === 2 ? 'دقيقتان' : n <= 10 ? `${ar(n)} دقائق` : `${ar(n)} دقيقة`;
 export const pagesAr = (n) => n === 1 ? 'صفحة واحدة' : n === 2 ? 'صفحتان' : n >= 3 && n <= 10 ? `${ar(n)} صفحات` : `${arNum(n)} صفحة`;
+export const azkarAr = (n) => n === 1 ? 'ذكر واحد' : n === 2 ? 'ذكران' : n <= 10 ? `${ar(n)} أذكار` : `${ar(n)} ذكرًا`;
