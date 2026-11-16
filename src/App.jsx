@@ -20,6 +20,8 @@ import Soon from './screens/Soon.jsx';
 import Duas from './screens/Duas.jsx';
 import Report from './screens/Report.jsx';
 import Challenges from './screens/Challenges.jsx';
+import { StoriesHome, StoryList } from './screens/Stories.jsx';
+import StoryReader from './screens/StoryReader.jsx';
 import { AZKAR } from './data/azkar.js';
 import { RUQYAH } from './data/ruqyah.js';
 
@@ -32,6 +34,8 @@ function Screen({ route }) {
     case 'duas': return <Duas />;
     case 'report': return <Report />;
     case 'challenges': return <Challenges />;
+    case 'stories': return b ? <StoryList col={b} /> : <StoriesHome />;
+    case 'story': return <StoryReader key={b} id={b} />;
     case 'wird': return <Wird />;
     case 'quran': return b ? <MushafReader key="m" page={+b} /> : <QuranIndex />;
     case 'prayer': return <Prayer />;
@@ -41,7 +45,7 @@ function Screen({ route }) {
   }
 }
 
-const FULL = (r) => (r[0] === 'azkar' && r[1]) || ['wird', 'ruqyah', 'duas', 'report', 'challenges'].includes(r[0]) || (r[0] === 'quran' && r[1]);
+const FULL = (r) => (r[0] === 'azkar' && r[1]) || ['wird', 'ruqyah', 'duas', 'report', 'challenges', 'stories', 'story'].includes(r[0]) || (r[0] === 'quran' && r[1]);
 
 export default function App() {
   const theme = useStore((s) => s.settings.theme);

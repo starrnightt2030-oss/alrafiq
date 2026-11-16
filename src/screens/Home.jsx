@@ -22,7 +22,7 @@ const TILES = [
   { to: '/ruqyah', label: 'الرقية', Icon: ShieldCheck },
   { to: '/challenges', label: 'التحديات', Icon: Trophy },
   { to: '/report', label: 'تقييمي', Icon: ChartColumn },
-  { to: '/soon/stories', label: 'القصص', Icon: Headphones, soon: true },
+  { to: '/stories', label: 'القصص', Icon: Headphones },
 ];
 
 const surahOfPage = (p) => { let s = quranMeta.surahs[0]; for (const x of quranMeta.surahs) { if (x.page <= p) s = x; else break; } return s; };

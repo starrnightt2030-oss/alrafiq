@@ -34,6 +34,11 @@ export const useStore = create(
       favDuas: [],
       firstDay: null,
       challenge: { i: 0, start: null, done: [] },
+      stories: { last: null, pos: {}, marks: [], done: [] },
+
+      saveStoryPos: (id, pct) => set((s) => ({ stories: { ...s.stories, last: id, pos: { ...s.stories.pos, [id]: pct } } })),
+      toggleStoryMark: (id) => set((s) => ({ stories: { ...s.stories, marks: s.stories.marks.includes(id) ? s.stories.marks.filter((x) => x !== id) : [...s.stories.marks, id] } })),
+      finishStory: (id) => set((s) => s.stories.done.includes(id) ? {} : ({ points: s.points + 20, stories: { ...s.stories, done: [...s.stories.done, id] } })),
 
       ensureFirstDay: () => { if (!get().firstDay) set({ firstDay: todayKey() }); },
 
@@ -95,6 +100,8 @@ export const useStore = create(
         ...persisted,
         settings: { ...current.settings, ...(persisted?.settings || {}), reminders: { ...current.settings.reminders, ...(persisted?.settings?.reminders || {}) } },
         quran: { ...current.quran, ...(persisted?.quran || {}) },
+        stories: { ...current.stories, ...(persisted?.stories || {}) },
+        challenge: { ...current.challenge, ...(persisted?.challenge || {}) },
       }),
       migrate: (state) => state,
     }
