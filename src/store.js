@@ -39,6 +39,12 @@ export const useStore = create(
       hifz: { plan: { dir: 'back', daily: 1, started: null }, pages: {}, log: {} },
       inbox: [],
       sent: {},
+      quiz: { seen: {}, history: [], best: 0, names: [], current: null },
+
+      // «فاستبقوا الخيرات»: seen يحفظ وقت آخر ظهور لكل سؤال حتى لا يتكرر في المحاولات التالية
+      saveQuizGame: (current) => set((s) => ({ quiz: { ...s.quiz, current } })),
+      markQuizSeen: (id) => set((s) => ({ quiz: { ...s.quiz, seen: { ...s.quiz.seen, [id]: Date.now() } } })),
+      finishQuiz: (rec, pts) => set((s) => ({ points: s.points + pts, quiz: { ...s.quiz, current: null, best: Math.max(s.quiz.best, rec.best || 0), history: [rec, ...s.quiz.history].slice(0, 30), names: rec.names } })),
 
       // رسائل الرفيق: تُحفظ في صندوق الرسائل (آخر ٦٠ رسالة)، و sent يمنع تكرار نفس الرسالة
       addMessage: (m) => set((s) => (m.key && s.sent[m.key]) ? {} : ({
@@ -125,6 +131,7 @@ export const useStore = create(
         stories: { ...current.stories, ...(persisted?.stories || {}) },
         hifz: { ...current.hifz, ...(persisted?.hifz || {}), plan: { ...current.hifz.plan, ...(persisted?.hifz?.plan || {}) } },
         challenge: { ...current.challenge, ...(persisted?.challenge || {}) },
+        quiz: { ...current.quiz, ...(persisted?.quiz || {}) },
       }),
       migrate: (state) => state,
     }

@@ -92,3 +92,68 @@ input[type=range] { accent-color: var(--acc); }
 .spin { animation: rf-spin 1s linear infinite; }
 .ltr { direction: ltr; unicode-bidi: isolate; display: inline-block; }
 .num { font-family: 'Amiri', serif; font-weight: 700; }
+
+/* ——— فاستبقوا الخيرات ——— */
+.quiz-root { min-height: 100dvh; }
+.quiz-intro { position: fixed; inset: 0; z-index: 50; border: 0; background: radial-gradient(circle at 50% 40%, var(--hero), var(--bg) 75%); color: var(--text); display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 24px; text-align: center; }
+.qi-rays { position: absolute; inset: -50%; background: repeating-conic-gradient(from 0deg, rgba(217,181,90,.09) 0 8deg, transparent 8deg 22deg); animation: qi-spin 40s linear infinite; }
+@keyframes qi-spin { to { transform: rotate(360deg); } }
+.qi-mote { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: var(--acc2); box-shadow: 0 0 10px var(--acc); }
+.qi-title { font-size: clamp(44px, 13vw, 72px); margin: 0; color: var(--acc); text-shadow: 0 6px 30px rgba(217,181,90,.4); position: relative; }
+.qi-word { font-family: 'Aref Ruqaa', serif; font-size: clamp(54px, 16vw, 92px); font-weight: 700; line-height: 1.2; position: relative; }
+.mode-card { align-items: center; gap: 6px; text-align: center; color: var(--text); transition: border-color .2s, background .2s; }
+.mode-card.on { border-color: var(--acc); background: linear-gradient(160deg, var(--surf2), var(--surf)); box-shadow: 0 0 0 3px rgba(217,181,90,.15); }
+.q-input { min-height: 52px; border-radius: 16px; border: 1px solid var(--line); background: var(--surf); color: var(--text); padding: 0 16px; font: inherit; font-size: 16px; }
+.q-input:focus { outline: 2px solid var(--acc); outline-offset: 1px; }
+.branch-pick { min-height: 48px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-radius: 16px; border: 1px solid var(--line); background: var(--surf); color: var(--muted); font: inherit; font-size: 13px; }
+.branch-pick.on { color: var(--text); border-color: var(--acc); background: var(--surf2); }
+.bp-ic { width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; background: var(--surf2); color: var(--acc); flex: none; }
+.q-go { min-height: 54px; font-size: 16px; background: linear-gradient(135deg, var(--acc), var(--acc2)); box-shadow: 0 12px 30px -12px var(--acc); }
+.q-dots { display: flex; gap: 5px; }
+.q-dots i { flex: 1; height: 6px; border-radius: 3px; background: var(--surf2); transition: background .3s; }
+.q-dots i.done { background: var(--acc); }
+.q-dots i.now { background: var(--acc2); animation: qd-pulse 1.2s ease-in-out infinite; }
+@keyframes qd-pulse { 50% { opacity: .45; } }
+.q-player { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 18px; background: var(--surf); border: 1px solid var(--line); transition: border-color .3s, box-shadow .3s; }
+.q-player.on { border-color: var(--acc); box-shadow: 0 0 0 3px rgba(217,181,90,.18), 0 10px 24px -14px var(--acc); }
+.q-av { width: 36px; height: 36px; flex: none; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(135deg, var(--acc), var(--acc2)); color: var(--onAcc); font-weight: 700; }
+.q-av.big { width: 76px; height: 76px; font-size: 32px; }
+.stage-card { gap: 14px; padding: 26px 20px; position: relative; z-index: 1; background: linear-gradient(170deg, var(--surf2), var(--surf)); border-color: var(--acc); perspective: 800px; text-align: center; }
+.stage-badge { width: 84px; height: 84px; border-radius: 28px; display: grid; place-items: center; color: var(--onAcc); background: linear-gradient(135deg, var(--acc), var(--acc2)); box-shadow: 0 14px 34px -12px var(--acc); transform: rotate(45deg); }
+.stage-badge svg { transform: rotate(-45deg); }
+.q-card { display: flex; flex-direction: column; gap: 10px; padding: 20px 18px; border-width: 1.5px; transition: border-color .3s, box-shadow .3s; }
+.q-card.ok { border-color: #5FC59A; box-shadow: 0 0 0 3px rgba(95,197,154,.2); }
+.q-card.no { border-color: #E58C7A; box-shadow: 0 0 0 3px rgba(229,140,122,.2); }
+.q-text { font-size: 17px; font-weight: 600; line-height: 1.8; }
+.q-verse { font-size: 22px; line-height: 2; text-align: center; color: var(--acc2); padding: 10px 6px; border-radius: 14px; background: var(--surf2); }
+.q-opt { min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 18px; border: 1.5px solid var(--line); background: var(--surf); color: var(--text); font: inherit; line-height: 1.6; transition: background .25s, border-color .25s; }
+.q-let { width: 32px; height: 32px; flex: none; border-radius: 11px; display: grid; place-items: center; background: var(--surf2); color: var(--acc); font-weight: 700; }
+.q-opt.lock { border-color: var(--acc); background: var(--surf2); animation: q-lock .5s ease-in-out infinite alternate; }
+@keyframes q-lock { to { box-shadow: 0 0 0 4px rgba(217,181,90,.25); } }
+.q-opt.ok { border-color: #5FC59A; background: rgba(95,197,154,.16); }
+.q-opt.ok .q-let { background: #5FC59A; color: #062b1c; }
+.q-opt.no { border-color: #E58C7A; background: rgba(229,140,122,.16); }
+.q-opt.no .q-let { background: #E58C7A; color: #3a0d05; }
+.q-opt.dim { opacity: .45; }
+.q-life { display: flex; align-items: center; gap: 5px; min-height: 40px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--surf); color: var(--text); font: inherit; font-size: 11.5px; }
+.q-life b { color: var(--acc); }
+.q-life:disabled { opacity: .35; }
+.q-timer { position: relative; width: 52px; height: 52px; }
+.q-timer span { position: absolute; inset: 0; display: grid; place-items: center; font-size: 17px; }
+.q-explain { gap: 10px; position: relative; overflow: visible; }
+.burst { position: absolute; top: 18px; left: 50%; pointer-events: none; }
+.burst i, .confetti i { position: absolute; border-radius: 2px; display: block; }
+.confetti { position: fixed; inset: 0; pointer-events: none; z-index: 40; overflow: hidden; }
+.confetti i { top: 0; }
+.q-tip { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 14px; background: var(--surf2); color: var(--text); text-decoration: none; font-size: 13px; }
+.q-tip span:first-child { font-weight: 600; }
+.q-tip .xs { flex: 1; }
+.cert-sheet { position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,.78); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; padding: 18px; }
+.cert-img { width: 100%; aspect-ratio: 1240 / 1754; border-radius: 12px; box-shadow: 0 30px 60px -20px #000; max-height: 72dvh; object-fit: contain; background: #0A231E; color: #F5F0E1; }
+.quiz-banner { position: relative; overflow: hidden; display: flex; align-items: center; gap: 14px; padding: 18px; border-radius: 26px; text-decoration: none; color: var(--heroText); background: linear-gradient(130deg, var(--hero), #6b4d12 140%); border: 1px solid var(--acc); box-shadow: 0 16px 36px -18px var(--acc); }
+.quiz-banner svg { color: var(--acc2); flex: none; position: relative; }
+.qb-glow { position: absolute; inset: -60% -20%; background: radial-gradient(circle at 20% 50%, rgba(240,216,148,.35), transparent 55%); animation: qb 4s ease-in-out infinite alternate; }
+@keyframes qb { to { transform: translateX(-30%); } }
+.qb-play { position: relative; padding: 9px 16px; border-radius: 999px; background: var(--acc); color: var(--onAcc); font-weight: 700; font-size: 13px; }
+.link-btn { background: none; border: 0; padding: 6px 4px; font: inherit; font-size: 12px; color: var(--acc); }
+.stage-card > * { align-self: center; } .stage-card > .btn, .stage-card > .grid2 { align-self: stretch; }

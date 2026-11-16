@@ -162,6 +162,17 @@ export default function Home() {
         <div className="row"><Flame className="accent" size={24} aria-hidden="true" /><div><div className="h2">{streak ? `سلسلة ${daysAr(streak)}` : 'ابدأ سلسلتك اليوم'}</div><div className="xs muted">أتمّ أذكار الصباح أو المساء كل يوم</div></div></div>
       </div>
 
+      <a href="#/quiz" className="quiz-banner" aria-label="مسابقة فاستبقوا الخيرات">
+        <span className="qb-glow" aria-hidden="true" />
+        <Trophy size={34} strokeWidth={1.5} aria-hidden="true" />
+        <span className="col" style={{ gap: 2, flex: 1 }}>
+          <span className="xs" style={{ opacity: .8 }}>مسابقة دينية بمراحل وشهادة</span>
+          <b className="ruqaa" style={{ fontSize: 24 }}>فاستبقوا الخيرات</b>
+          <span className="xs" style={{ opacity: .8 }}>العب وحدك أو نافس صديقك</span>
+        </span>
+        <span className="qb-play" aria-hidden="true">العب</span>
+      </a>
+
       <nav className="grid4" aria-label="الأقسام">
         {TILES.map(({ to, label, Icon, soon }) => (
           <a key={to} href={'#' + to} className="tile">
