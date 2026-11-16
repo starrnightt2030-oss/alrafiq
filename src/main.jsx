@@ -1,0 +1,19 @@
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import '@fontsource/readex-pro/300.css';
+import '@fontsource/readex-pro/400.css';
+import '@fontsource/readex-pro/500.css';
+import '@fontsource/readex-pro/600.css';
+import '@fontsource/readex-pro/700.css';
+import '@fontsource/amiri/400.css';
+import '@fontsource/amiri/700.css';
+import '@fontsource/aref-ruqaa/700.css';
+import './styles/global.css';
+import App from './App.jsx';
+import { useStore } from './store.js';
+import { applyTheme } from './themes.js';
+import { registerSW } from './lib/update.js';
+
+applyTheme(useStore.getState().settings.theme);
+createRoot(document.getElementById('root')).render(<React.StrictMode><App /></React.StrictMode>);
+registerSW();

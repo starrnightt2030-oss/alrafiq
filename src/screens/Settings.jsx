@@ -1,0 +1,110 @@
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { Volume2, Vibrate, Bell, Sparkles, RefreshCw, Download, CheckCircle2, Palette, Target } from 'lucide-react';
+import { useStore } from '../store.js';
+import { THEMES, THEME_ORDER } from '../themes.js';
+import { APP } from '../config.js';
+import { sound } from '../lib/sound.js';
+import { askPermission, scheduleReminders } from '../lib/notify.js';
+import { checkForUpdate, applyUpdate } from '../lib/update.js';
+import { ar, arNum } from '../lib/arabic.js';
+import { Switch, Credit, toast } from '../components/ui.jsx';
+import logo from '../assets/logo.webp';
+
+export default function Settings() {
+  const st = useStore((s) => s.settings);
+  const setSetting = useStore((s) => s.setSetting);
+  const [upd, setUpd] = useState({ state: 'idle' });
+
+  const check = async () => {
+    setUpd({ state: 'checking' });
+    try { const r = await checkForUpdate(); setUpd({ state: r.hasUpdate ? 'available' : 'latest', ...r }); }
+    catch { setUpd({ state: 'error' }); }
+  };
+
+  const reminders = async (on) => {
+    if (on) { const p = await askPermission(); if (p === 'denied') toast('الإشعارات مرفوضة من المتصفح — سيظهر التذكير داخل التطبيق فقط'); }
+    setSetting('reminders', { ...st.reminders, enabled: on });
+    setTimeout(scheduleReminders, 0);
+  };
+
+  return (
+    <div className="screen">
+      <h1 className="title center">الإعدادات</h1>
+
+      <section className="card col" style={{ gap: 12 }}>
+        <div className="row h2"><Palette size={18} className="accent" aria-hidden="true" />الثيم</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0,1fr))', gap: 8 }} role="radiogroup" aria-label="الثيم">
+          {THEME_ORDER.map((id) => {
+            const t = THEMES[id], on = st.theme === id;
+            return (
+              <button key={id} role="radio" aria-checked={on} onClick={() => setSetting('theme', id)} className="col" style={{ alignItems: 'center', gap: 6, padding: '8px 0', borderRadius: 16, border: '2px solid ' + (on ? 'var(--acc)' : 'transparent'), background: 'var(--surf2)' }}>
+                <span style={{ width: 34, height: 34, borderRadius: 12, background: `linear-gradient(135deg, ${t.bg} 55%, ${t.acc} 55%)`, border: '1px solid var(--line)' }} />
+                <span className="xs" style={{ fontWeight: on ? 600 : 400 }}>{t.name}</span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="card">
+        <div className="set-row"><span className="row"><Volume2 size={18} className="accent" aria-hidden="true" />أصوات التطبيق</span><Switch label="أصوات التطبيق" checked={st.sound} onChange={(v) => { setSetting('sound', v); if (v) setTimeout(() => sound.next(), 50); }} /></div>
+        {st.sound && (
+          <div className="set-row">
+            <label className="row" style={{ flex: 1 }}><span className="small muted" style={{ minWidth: 60 }}>مستوى الصوت</span>
+              <input type="range" min="0.1" max="1" step="0.1" value={st.volume} onChange={(e) => setSetting('volume', +e.target.value)} style={{ flex: 1 }} /></label>
+            <button className="btn soft" style={{ minHeight: 38, padding: '0 12px', fontSize: 12 }} onClick={() => sound.milestone()}>تجربة</button>
+          </div>
+        )}
+        <div className="set-row"><span className="row"><Vibrate size={18} className="accent" aria-hidden="true" />الاهتزاز مع العدّ</span><Switch label="الاهتزاز" checked={st.haptics} onChange={(v) => setSetting('haptics', v)} /></div>
+        <div className="set-row"><span className="row"><Sparkles size={18} className="accent" aria-hidden="true" />المقدمة المتحركة عند الفتح</span><Switch label="المقدمة المتحركة" checked={st.intro} onChange={(v) => setSetting('intro', v)} /></div>
+      </section>
+
+      <section className="card">
+        <div className="set-row"><span className="row"><Bell size={18} className="accent" aria-hidden="true" />تذكير أذكار الصباح والمساء</span><Switch label="تذكير الأذكار" checked={st.reminders.enabled} onChange={reminders} /></div>
+        {st.reminders.enabled && (
+          <>
+            <label className="set-row"><span className="small">أذكار الصباح</span><input className="inp" type="time" value={st.reminders.morning} onChange={(e) => { setSetting('reminders', { ...st.reminders, morning: e.target.value }); setTimeout(scheduleReminders, 0); }} /></label>
+            <label className="set-row"><span className="small">أذكار المساء</span><input className="inp" type="time" value={st.reminders.evening} onChange={(e) => { setSetting('reminders', { ...st.reminders, evening: e.target.value }); setTimeout(scheduleReminders, 0); }} /></label>
+          </>
+        )}
+        <div className="set-row">
+          <span className="row"><Target size={18} className="accent" aria-hidden="true" />هدف الورد اليومي</span>
+          <select className="sel" value={st.wirdGoal} onChange={(e) => setSetting('wirdGoal', +e.target.value)}>
+            {[100, 300, 500, 1000, 2000, 3000].map((n) => <option key={n} value={n}>{arNum(n)} ذكر</option>)}
+          </select>
+        </div>
+      </section>
+
+      <section className="card col center" style={{ alignItems: 'center', gap: 12, position: 'relative', overflow: 'hidden' }}>
+        <img src={logo} alt="" width="84" height="84" style={{ borderRadius: 22, boxShadow: '0 12px 30px -12px rgba(0,0,0,.5)' }} />
+        <div>
+          <div className="amiri accent" style={{ fontSize: 30, fontWeight: 700 }}>{APP.name}</div>
+          <div className="xs muted">{APP.tagline}</div>
+        </div>
+        <motion.div initial={{ scale: .9 }} animate={{ scale: 1 }} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 999, background: 'linear-gradient(135deg, var(--acc), var(--acc2))', color: 'var(--onAcc)', fontWeight: 700, letterSpacing: .5 }}>
+          <span className="xs" style={{ fontWeight: 500 }}>الإصدار</span><span dir="ltr">v{APP.version}</span>
+        </motion.div>
+        <div className="xs muted">تاريخ البناء {ar(APP.buildDate)}</div>
+
+        {upd.state === 'available' ? (
+          <div className="col" style={{ width: '100%', gap: 8 }}>
+            <div className="small accent">يتوفر إصدار جديد: v{upd.latest}</div>
+            {upd.notes?.length > 0 && <ul className="xs muted" style={{ textAlign: 'right', margin: 0, lineHeight: 1.9 }}>{upd.notes.map((n, i) => <li key={i}>{n}</li>)}</ul>}
+            <button className="btn" onClick={applyUpdate}><Download size={18} />تحديث الآن</button>
+          </div>
+        ) : (
+          <button className="btn ghost" style={{ width: '100%' }} onClick={check} disabled={upd.state === 'checking'}>
+            {upd.state === 'latest' ? <><CheckCircle2 size={18} className="accent" />أنت على آخر إصدار</> : <><RefreshCw size={18} className={upd.state === 'checking' ? 'spin' : ''} />{upd.state === 'checking' ? 'جارٍ البحث…' : upd.state === 'error' ? 'تعذّر الاتصال — حاول مجددًا' : 'البحث عن تحديثات'}</>}
+          </button>
+        )}
+      </section>
+
+      <section className="card xs muted" style={{ lineHeight: 1.9 }}>
+        نص المصحف وخطّه: مجمع الملك فهد لطباعة المصحف الشريف (رواية حفص، الإصدار ١٨). الأذكار من الأحاديث الصحيحة والحسنة مع ذكر مصادرها.
+      </section>
+
+      <Credit />
+    </div>
+  );
+}
