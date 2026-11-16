@@ -8,7 +8,12 @@ export const PRAYERS = [
 
 export function resolveLocation(loc) {
   if (loc?.mode === 'gps' && typeof loc.lat === 'number') {
-    return { name: 'موقعي الحالي', country: '', lat: loc.lat, lng: loc.lng, method: loc.method || 'Egyptian', tz: Intl.DateTimeFormat().resolvedOptions().timeZone };
+    const near = loc.near && CITIES.find((c) => c.id === loc.near);
+    return {
+      name: near ? (loc.nearDist < 15 ? near.name : `قرب ${near.name}`) : 'موقعي الحالي',
+      country: near?.country || '', lat: loc.lat, lng: loc.lng, method: loc.method || near?.method || 'Egyptian',
+      tz: Intl.DateTimeFormat().resolvedOptions().timeZone, gps: true,
+    };
   }
   return CITIES.find((c) => c.id === loc?.id) || CITIES[0];
 }

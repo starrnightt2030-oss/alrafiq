@@ -6,6 +6,7 @@ import { resolveLocation, timesFor, nextPrayer, fmtTime, countdown } from '../li
 import { ar, hijri, gregorian } from '../lib/arabic.js';
 import { useNow } from '../hooks.js';
 import { toast } from '../components/ui.jsx';
+import { locate } from '../lib/locate.js';
 import { STATUS, STATUS_ORDER } from '../lib/stats.js';
 import { todayKey } from '../lib/arabic.js';
 import { vibrate } from '../lib/haptics.js';
@@ -29,14 +30,15 @@ export default function Prayer() {
   const list = timesFor(place, now);
   const next = nextPrayer(place, now);
 
-  const gps = () => {
-    if (!navigator.geolocation) return toast('الموقع غير مدعوم على هذا الجهاز');
+  const gps = async () => {
     setBusy(true);
-    navigator.geolocation.getCurrentPosition(
-      (p) => { setBusy(false); setSetting('location', { mode: 'gps', lat: +p.coords.latitude.toFixed(4), lng: +p.coords.longitude.toFixed(4), method: loc.method || 'Egyptian' }); toast('تم تحديد موقعك'); },
-      () => { setBusy(false); toast('لم نتمكن من تحديد موقعك — اختر مدينتك من القائمة'); },
-      { enableHighAccuracy: false, timeout: 12000, maximumAge: 3600000 }
-    );
+    try {
+      const l = await locate();
+      setSetting('location', l);
+      const p = resolveLocation(l);
+      toast(`تم تحديد موقعك: ${p.country ? p.country + ' · ' : ''}${p.name}`);
+    } catch (e) { toast(e.message || 'تعذّر تحديد الموقع — اختر محافظتك من القائمة'); }
+    finally { setBusy(false); }
   };
 
   return (
@@ -93,7 +95,7 @@ export default function Prayer() {
         <label className="col" style={{ gap: 6 }}>
           <span className="xs muted">الدولة والمحافظة / المدينة</span>
           <select className="sel" value={loc.mode === 'gps' ? 'gps' : loc.id} onChange={(e) => { if (e.target.value === 'gps') gps(); else setSetting('location', { mode: 'city', id: e.target.value }); }}>
-            {loc.mode === 'gps' && <option value="gps">موقعي الحالي</option>}
+            {loc.mode === 'gps' && <option value="gps">{'موقعي: ' + place.name}</option>}
             {countries.map((c) => (
               <optgroup key={c} label={c}>{CITIES.filter((x) => x.country === c).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</optgroup>
             ))}
@@ -108,6 +110,7 @@ export default function Prayer() {
             </select>
           </label>
         )}
+        {loc.mode === 'gps' && <div className="xs muted" style={{ lineHeight: 1.8 }}>الإحداثيات: <span className="ltr">{loc.lat}, {loc.lng}</span>{loc.acc ? ` · الدقة نحو ${ar(loc.acc)} متر` : ''}</div>}
         <div className="xs muted">طريقة الحساب الحالية: {METHODS[place.method] || place.method}</div>
       </section>
 
