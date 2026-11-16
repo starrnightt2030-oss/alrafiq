@@ -17,12 +17,17 @@ import MushafReader from './screens/MushafReader.jsx';
 import Prayer from './screens/Prayer.jsx';
 import Settings from './screens/Settings.jsx';
 import Soon from './screens/Soon.jsx';
+import Duas from './screens/Duas.jsx';
+import { AZKAR } from './data/azkar.js';
+import { RUQYAH } from './data/ruqyah.js';
 
 function Screen({ route }) {
   const [a, b] = route;
   switch (a) {
     case undefined: return <Home />;
-    case 'azkar': return b ? <AzkarReader key={b} session={b} /> : <AzkarIndex />;
+    case 'azkar': return b ? <AzkarReader key={b} set={AZKAR[b]} /> : <AzkarIndex />;
+    case 'ruqyah': return <AzkarReader key="ruqyah" set={RUQYAH} fallback="/azkar" />;
+    case 'duas': return <Duas />;
     case 'wird': return <Wird />;
     case 'quran': return b ? <MushafReader key="m" page={+b} /> : <QuranIndex />;
     case 'prayer': return <Prayer />;
@@ -32,7 +37,7 @@ function Screen({ route }) {
   }
 }
 
-const FULL = (r) => (r[0] === 'azkar' && r[1]) || r[0] === 'wird' || (r[0] === 'quran' && r[1]);
+const FULL = (r) => (r[0] === 'azkar' && r[1]) || ['wird', 'ruqyah', 'duas'].includes(r[0]) || (r[0] === 'quran' && r[1]);
 
 export default function App() {
   const theme = useStore((s) => s.settings.theme);

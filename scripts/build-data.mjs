@@ -26,15 +26,15 @@ mkdirSync(join(root, 'public/quran'), { recursive: true });
 writeFileSync(join(root, 'public/quran/hafs-v18.json'), JSON.stringify({ v: 18, surahs, juz: juzStarts, ayahs }));
 writeFileSync(join(root, 'src/data/quranMeta.json'), JSON.stringify({ surahs, juz: juzStarts }));
 
-// مقتطفات قرآنية تُستخدم داخل الأذكار — تُنسخ حرفيًّا من بيانات المجمع
-const pick = (s, from, to = from) => ayahs.filter((a) => a[0] === s && a[1] >= from && a[1] <= to).map((a) => a[6]).join(' ');
-const snippets = {
-  kursi: pick(2, 255),
-  baqarahEnd: pick(2, 285, 286),
-  ikhlas: pick(112, 1, 4),
-  falaq: pick(113, 1, 5),
-  nas: pick(114, 1, 6),
-  basmala: ayahs[0][6].replace(/\s*[٠-٩]+$/, ''),
-};
+// مقتطفات قرآنية تُستخدم في الأذكار والأدعية والرقية — تُنسخ حرفيًّا من بيانات المجمع
+const { QURAN_REFS } = await import(new URL('../src/data/quranRefs.js', import.meta.url));
+const snippets = { basmala: ayahs[0][6].replace(/\s*[\u0660-\u0669]+$/, '') };
+for (const ref of QURAN_REFS) {
+  const [s, range] = ref.split(':');
+  const [from, to = from] = range.split('-').map(Number);
+  const list = ayahs.filter((a) => a[0] === +s && a[1] >= from && a[1] <= to);
+  if (list.length !== to - from + 1) throw new Error('مرجع غير صحيح: ' + ref);
+  snippets[ref] = list.map((a) => a[6]).join(' ');
+}
 writeFileSync(join(root, 'src/data/quranSnippets.json'), JSON.stringify(snippets, null, 1));
-console.log('✓ quran data:', ayahs.length, 'ayahs,', surahs.length, 'surahs');
+console.log('✓ quran data:', ayahs.length, 'ayahs,', surahs.length, 'surahs,', QURAN_REFS.length, 'snippets');

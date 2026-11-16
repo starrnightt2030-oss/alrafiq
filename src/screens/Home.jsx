@@ -16,8 +16,8 @@ const TILES = [
   { to: '/wird', label: 'الورد', Icon: CircleDot },
   { to: '/quran', label: 'المصحف', Icon: BookMarked },
   { to: '/prayer', label: 'الصلاة', Icon: Sunrise },
-  { to: '/soon/duas', label: 'الأدعية', Icon: HandHeart, soon: true },
-  { to: '/soon/ruqyah', label: 'الرقية', Icon: ShieldCheck, soon: true },
+  { to: '/duas', label: 'الأدعية', Icon: HandHeart },
+  { to: '/ruqyah', label: 'الرقية', Icon: ShieldCheck },
   { to: '/soon/stories', label: 'القصص', Icon: Headphones, soon: true },
   { to: '/soon/challenges', label: 'التحديات', Icon: Trophy, soon: true },
 ];

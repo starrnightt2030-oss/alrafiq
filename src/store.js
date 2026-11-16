@@ -31,6 +31,9 @@ export const useStore = create(
       days: {},
       points: 0,
       quran: { lastPage: 1, lastAt: null, bookmarks: [] },
+      favDuas: [],
+
+      toggleFavDua: (id) => set((s) => ({ favDuas: s.favDuas.includes(id) ? s.favDuas.filter((x) => x !== id) : [...s.favDuas, id] })),
 
       setSetting: (key, value) => set((s) => ({ settings: { ...s.settings, [key]: value } })),
 

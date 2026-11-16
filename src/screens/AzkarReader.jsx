@@ -2,22 +2,23 @@ import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Star, RotateCcw, ChevronRight, ChevronLeft, AArrowUp, AArrowDown } from 'lucide-react';
 import { useStore } from '../store.js';
-import { AZKAR } from '../data/azkar.js';
 import Q from '../data/quranSnippets.json';
+import { refName } from '../lib/ref.js';
 import { ar, todayKey } from '../lib/arabic.js';
 import { sound } from '../lib/sound.js';
 import { vibrate } from '../lib/haptics.js';
 import { TopBar, Ring } from '../components/ui.jsx';
 import { go } from '../router.js';
 
-export default function AzkarReader({ session }) {
-  const set = AZKAR[session];
+export default function AzkarReader({ set, fallback = '/azkar' }) {
+  const session = set?.id;
   const saved = useStore((s) => s.days[todayKey()]?.azkar?.[session]);
   const saveAzkar = useStore((s) => s.saveAzkar);
   const scale = useStore((s) => s.settings.textScale);
   const setSetting = useStore((s) => s.setSetting);
-  const [i, setI] = useState(saved?.done ? set.items.length : saved?.i || 0);
-  const [c, setC] = useState(saved?.done ? 0 : saved?.c || 0);
+  const fresh = saved?.done && set?.repeatable; // أذكار تتكرر في اليوم (بعد الصلاة، الرقية) تبدأ من جديد
+  const [i, setI] = useState(() => !saved || fresh ? 0 : saved.done ? set.items.length : saved.i || 0);
+  const [c, setC] = useState(() => !saved || fresh || saved.done ? 0 : saved.c || 0);
   const items = set?.items || [];
   const done = i >= items.length;
   const z = items[Math.min(i, items.length - 1)];
@@ -39,12 +40,12 @@ export default function AzkarReader({ session }) {
   };
 
   const steps = useMemo(() => items.map((_, k) => (k < i ? 'd' : k === i ? 'n' : '')), [i, items]);
-  if (!set) { go('/azkar'); return null; }
+  if (!set) { go(fallback); return null; }
   const fs = (z.quran ? 24 : z.text.length > 200 ? 18 : z.text.length > 90 ? 21 : 27) * scale;
 
   return (
     <div className="screen no-nav" style={{ minHeight: '100dvh' }}>
-      <TopBar title={set.title} sub={done ? 'اكتمل الورد' : `الذكر ${ar(i + 1)} من ${ar(items.length)}`} fallback="/azkar"
+      <TopBar title={set.title} sub={done ? 'اكتمل الورد' : `الذكر ${ar(i + 1)} من ${ar(items.length)}`} fallback={fallback}
         right={<button className="icon-btn" aria-label="إعادة البدء" onClick={() => advance(0)}><RotateCcw size={19} /></button>} />
       <div className="row" style={{ gap: 3 }} aria-hidden="true">
         {steps.map((s, k) => <span key={k} style={{ flex: 1, height: 5, borderRadius: 4, background: s === 'd' ? 'var(--acc)' : s === 'n' ? 'color-mix(in srgb, var(--acc) 45%, transparent)' : 'var(--surf2)', transition: 'background .3s' }} />)}
@@ -55,7 +56,10 @@ export default function AzkarReader({ session }) {
           <motion.div key={'z' + i} initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 30 }} transition={{ duration: .28 }} className="col" style={{ gap: 14, flex: 1 }}>
             <article className="card col" style={{ gap: 12 }}>
               <div className="between">
-                <span className="small accent" style={{ fontWeight: 600 }}>{z.title}</span>
+                <span className="col" style={{ gap: 0 }}>
+                  <span className="small accent" style={{ fontWeight: 600 }}>{z.title}</span>
+                  {z.ref && <span className="xs muted">{refName(z.ref, !z.title.startsWith('سورة'))}</span>}
+                </span>
                 <div className="row" style={{ gap: 6 }}>
                   <button className="icon-btn" style={{ width: 36, height: 36 }} aria-label="تصغير الخط" onClick={() => setSetting('textScale', Math.max(.8, +(scale - .1).toFixed(2)))}><AArrowDown size={17} /></button>
                   <button className="icon-btn" style={{ width: 36, height: 36 }} aria-label="تكبير الخط" onClick={() => setSetting('textScale', Math.min(1.5, +(scale + .1).toFixed(2)))}><AArrowUp size={17} /></button>
@@ -67,7 +71,7 @@ export default function AzkarReader({ session }) {
               </p>
               <div className="row" style={{ alignItems: 'flex-start', gap: 8, borderTop: '1px dashed var(--line)', paddingTop: 10 }}>
                 <Star size={17} className="accent" style={{ flex: 'none', marginTop: 3 }} aria-hidden="true" />
-                <div className="small" style={{ lineHeight: 1.8 }}><b className="accent">الفضل: </b>{z.reward} <span className="muted">— {z.src}</span></div>
+                <div className="small" style={{ lineHeight: 1.8 }}><b className="accent">الفضل: </b>{z.reward}{z.src && <span className="muted"> — {z.src}</span>}</div>
               </div>
             </article>
 
@@ -94,7 +98,7 @@ export default function AzkarReader({ session }) {
             <div style={{ fontSize: 22, fontWeight: 700 }}>أتممت {set.title}</div>
             <div className="small muted" style={{ lineHeight: 1.9 }}>تقبّل الله منك، وأُضيفت ٥٠ نقطة إلى رصيدك.</div>
             <div className="row" style={{ gap: 10, marginTop: 6 }}>
-              <a className="btn" href="#/wird">انتقل إلى الورد</a>
+              <a className="btn" href={fallback === '/azkar' ? '#/azkar' : '#/'}>{fallback === '/azkar' ? 'باقي الأذكار' : 'الرئيسية'}</a>
               <button className="btn ghost" onClick={() => advance(0)}>إعادة القراءة</button>
             </div>
           </motion.div>
