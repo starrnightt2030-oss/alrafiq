@@ -11,7 +11,10 @@ import { useAdhanWatcher } from './lib/adhan.js';
 import { resolveLocation } from './lib/prayer.js';
 import { showNotification } from './lib/notify.js';
 import BottomNav from './components/BottomNav.jsx';
-import { ToastHost } from './components/ui.jsx';
+import { MessageHost } from './components/Messages.jsx';
+import { startCompanion } from './lib/companion.js';
+import { setupNative, isNative } from './lib/native.js';
+import Inbox from './screens/Inbox.jsx';
 import Home from './screens/Home.jsx';
 import AzkarIndex from './screens/AzkarIndex.jsx';
 import AzkarReader from './screens/AzkarReader.jsx';
@@ -39,6 +42,7 @@ function Screen({ route }) {
     case 'duas': return <Duas />;
     case 'report': return <Report />;
     case 'challenges': return <Challenges />;
+    case 'inbox': return <Inbox />;
     case 'stories': return b ? <StoryList col={b} /> : <StoriesHome />;
     case 'story': return <StoryReader key={b} id={b} />;
     case 'wird': return <Wird />;
@@ -51,7 +55,7 @@ function Screen({ route }) {
   }
 }
 
-const FULL = (r) => (r[0] === 'azkar' && r[1]) || ['wird', 'ruqyah', 'duas', 'report', 'challenges', 'stories', 'story', 'hifz'].includes(r[0]) || (r[0] === 'quran' && r[1]);
+const FULL = (r) => (r[0] === 'azkar' && r[1]) || ['wird', 'ruqyah', 'duas', 'report', 'challenges', 'stories', 'story', 'hifz', 'inbox'].includes(r[0]) || (r[0] === 'quran' && r[1]);
 
 export default function App() {
   const theme = useStore((s) => s.settings.theme);
@@ -63,13 +67,15 @@ export default function App() {
   useEffect(() => {
     useStore.getState().ensureFirstDay();
     scheduleReminders();
+    const stopCompanion = startCompanion();
+    const stopNative = setupNative();
     const unlock = () => { sound.unlock(); removeEventListener('pointerdown', unlock); };
     addEventListener('pointerdown', unlock);
-    return () => removeEventListener('pointerdown', unlock);
+    return () => { removeEventListener('pointerdown', unlock); stopCompanion(); stopNative(); };
   }, []);
 
   const [adhan, setAdhan] = useState(null);
-  useAdhanWatcher((p) => { setAdhan(p); showNotification('حان موعد أذان ' + p.name, 'حيّ على الصلاة — الرفيق'); });
+  useAdhanWatcher((p) => { setAdhan(p); if (!isNative) showNotification('حان موعد أذان ' + p.name, 'حيّ على الصلاة — الرفيق'); });
   const tz = resolveLocation(useStore.getState().settings.location).tz;
 
   const done = () => { setSplash(false); sessionStorageSet('rf-intro', '1'); };
@@ -79,10 +85,10 @@ export default function App() {
       <div className="app">
         <Screen route={route} />
         {!FULL(route) && <BottomNav route={route} />}
-        <ToastHost />
+        <MessageHost />
       </div>
       <AnimatePresence>{splash && <Splash onDone={done} />}</AnimatePresence>
-      <AnimatePresence>{adhan && !splash && <AdhanOverlay prayer={adhan} tz={tz} onClose={() => setAdhan(null)} />}</AnimatePresence>
+      <AnimatePresence>{adhan && !splash && <AdhanOverlay prayer={adhan} tz={tz} autoplay={!isNative} onClose={() => setAdhan(null)} />}</AnimatePresence>
     </MotionConfig>
   );
 }

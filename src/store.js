@@ -37,6 +37,16 @@ export const useStore = create(
       challenge: { i: 0, start: null, done: [] },
       stories: { last: null, pos: {}, marks: [], done: [] },
       hifz: { plan: { dir: 'back', daily: 1, started: null }, pages: {}, log: {} },
+      inbox: [],
+      sent: {},
+
+      // رسائل الرفيق: تُحفظ في صندوق الرسائل (آخر ٦٠ رسالة)، و sent يمنع تكرار نفس الرسالة
+      addMessage: (m) => set((s) => (m.key && s.sent[m.key]) ? {} : ({
+        inbox: [{ ...m, id: m.key || String(Date.now()), at: Date.now(), read: false }, ...s.inbox].slice(0, 60),
+        sent: m.key ? { ...s.sent, [m.key]: Date.now() } : s.sent,
+      })),
+      markInboxRead: () => set((s) => ({ inbox: s.inbox.map((x) => ({ ...x, read: true })) })),
+      clearInbox: () => set({ inbox: [] }),
 
       setHifzPlan: (plan) => set((s) => ({ hifz: { ...s.hifz, plan: { ...s.hifz.plan, ...plan, started: s.hifz.plan.started || todayKey() } } })),
       // تحديث صفحات الحفظ: updates = { [page]: state | null }، kind = 'new' | 'rev' | null للتسجيل اليومي

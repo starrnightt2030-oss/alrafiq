@@ -7,6 +7,7 @@ import { ar, arNum } from '../lib/arabic.js';
 import { sound } from '../lib/sound.js';
 import { vibrate } from '../lib/haptics.js';
 import { TopBar, Ring, toast } from '../components/ui.jsx';
+import { notify } from '../lib/companion.js';
 
 // يراقب التحدي الحالي ويكافئ المستخدم تلقائيًّا عند إتمامه (يُستدعى من الرئيسية وشاشة التحديات)
 export function useChallengeWatcher() {
@@ -18,7 +19,7 @@ export function useChallengeWatcher() {
       fired.current = st.c.id;
       s.completeChallenge(st.c.id, st.c.points);
       sound.complete(); vibrate([40, 60, 40, 60, 90]);
-      toast(`ما شاء الله! أتممت تحدي «${st.c.title}» — وسام «${st.c.badge}» و${arNum(st.c.points)} نقطة`);
+      notify({ key: 'chdone-' + st.c.id, icon: 'trophy', tone: 'celebrate', title: 'ما شاء الله! تحدٍّ جديد اكتمل', body: `أتممت «${st.c.title}» وكسبت وسام «${st.c.badge}» و${arNum(st.c.points)} نقطة. التحدي اللي بعده اتفتح!`, cta: { label: 'التحدي التالي', href: '#/challenges' } });
     }
   }, [st.done, st.c?.id]); // eslint-disable-line
   return st;

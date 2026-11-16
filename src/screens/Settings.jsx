@@ -12,7 +12,9 @@ import { Switch, Credit, toast } from '../components/ui.jsx';
 import logo from '../assets/logo.webp';
 import { playAdhan, stopAdhan, useAdhanState, MUEZZIN } from '../lib/adhan.js';
 import { FARD } from '../lib/stats.js';
-import { Megaphone, Square, Play } from 'lucide-react';
+import { Megaphone, Square, Play, Smartphone } from 'lucide-react';
+import { isNative } from '../lib/native.js';
+import { APK_URL } from '../lib/update.js';
 
 export default function Settings() {
   const st = useStore((s) => s.settings);
@@ -29,7 +31,7 @@ export default function Settings() {
   };
 
   const reminders = async (on) => {
-    if (on) { const p = await askPermission(); if (p === 'denied') toast('الإشعارات مرفوضة من المتصفح — سيظهر التذكير داخل التطبيق فقط'); }
+    if (on && !isNative) { const p = await askPermission(); if (p === 'denied') toast('الإشعارات مرفوضة من المتصفح — سيظهر التذكير داخل التطبيق فقط'); }
     setSetting('reminders', { ...st.reminders, enabled: on });
     setTimeout(scheduleReminders, 0);
   };
@@ -129,6 +131,14 @@ export default function Settings() {
           </button>
         )}
       </section>
+
+      {!isNative && (
+        <a href={APK_URL} className="card row" style={{ textDecoration: 'none', color: 'var(--text)', borderColor: 'var(--acc)' }}>
+          <Smartphone size={26} className="accent" aria-hidden="true" />
+          <div style={{ flex: 1 }}><div className="h2">حمّل تطبيق أندرويد</div><div className="xs muted" style={{ lineHeight: 1.8 }}>الأذان بصوته الكامل وتنبيهات الرفيق حتى والتطبيق مغلق</div></div>
+          <Download size={20} className="accent" aria-hidden="true" />
+        </a>
+      )}
 
       <section className="card xs muted" style={{ lineHeight: 1.9 }}>
         نص المصحف وخطّه: مجمع الملك فهد لطباعة المصحف الشريف (رواية حفص، الإصدار ١٨). الأذكار من الأحاديث الصحيحة والحسنة مع ذكر مصادرها.

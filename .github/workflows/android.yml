@@ -1,0 +1,56 @@
+name: Build Android APK
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['public/audio/stories/**', '**.md']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: android
+  cancel-in-progress: true
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Read version
+        id: v
+        run: |
+          V=$(node -p "require('./release.json').version")
+          echo "version=$V" >> $GITHUB_OUTPUT
+          IFS=. read MA MI PA <<< "$V"
+          echo "code=$((MA*10000 + MI*100 + PA))" >> $GITHUB_OUTPUT
+      - run: npm ci
+      - run: npm run build
+      - run: npx cap sync android
+      - name: Build signed APK
+        working-directory: android
+        env:
+          VERSION_NAME: ${{ steps.v.outputs.version }}
+          VERSION_CODE: ${{ steps.v.outputs.code }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+          cp app/build/outputs/apk/release/app-release.apk ../alrafiq.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: alrafiq-apk
+          path: alrafiq.apk
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.v.outputs.version }}
+          name: الرفيق ${{ steps.v.outputs.version }}
+          body: "تطبيق الرفيق لأندرويد — حمّل ملف alrafiq.apk وثبّته. تم تصميم وتطوير التطبيق بواسطة Mohamed Eldawly"
+          files: alrafiq.apk
+          make_latest: true
+          overwrite_files: true

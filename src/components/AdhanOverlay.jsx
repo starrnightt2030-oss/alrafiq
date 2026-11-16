@@ -5,11 +5,12 @@ import { playAdhan, stopAdhan, useAdhanState, MUEZZIN } from '../lib/adhan.js';
 import { fmtTime } from '../lib/prayer.js';
 
 // شاشة الأذان: تظهر عند دخول الوقت، وتعرض دعاء ما بعد الأذان
-export default function AdhanOverlay({ prayer, tz, onClose }) {
+export default function AdhanOverlay({ prayer, tz, onClose, autoplay = true }) {
   const { playing, phase } = useAdhanState();
   const [blocked, setBlocked] = useState(false);
   const [started, setStarted] = useState(false);
-  useEffect(() => { playAdhan(prayer.key).then((ok) => { setBlocked(!ok); setStarted(ok); }); return () => stopAdhan(); }, [prayer.key]);
+  // في تطبيق أندرويد يرفع إشعار النظام الأذان بصوته، فلا نشغّله مرة ثانية هنا
+  useEffect(() => { if (!autoplay) { setBlocked(true); return; } playAdhan(prayer.key).then((ok) => { setBlocked(!ok); setStarted(ok); }); return () => stopAdhan(); }, [prayer.key]);
   const ended = started && (!playing || phase === 'dua');
   return (
     <motion.div role="dialog" aria-label={'أذان ' + prayer.name} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}

@@ -1,4 +1,4 @@
-import { BookOpen, CircleDot, HandHeart, ShieldCheck, Headphones, BookMarked, Trophy, Flame, Sunrise, Sunset, BellRing, ChartColumn, CheckCircle2, GraduationCap } from 'lucide-react';
+import { BookOpen, CircleDot, HandHeart, ShieldCheck, Headphones, BookMarked, Trophy, Flame, Sunrise, Sunset, BellRing, ChartColumn, CheckCircle2, GraduationCap, MessageCircleHeart } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useStore, streakOf } from '../store.js';
 import { THEMES, THEME_ORDER } from '../themes.js';
@@ -31,6 +31,7 @@ export default function Home() {
   const now = useNow(1000);
   const { settings, days, points, quran, setSetting, setPrayer } = useStore();
   const ch = useChallengeWatcher();
+  const unread = useStore((x) => x.inbox.filter((m) => !m.read).length);
   const d = days[todayKey()] || { azkar: {}, wird: {} };
   const place = resolveLocation(settings.location);
   const next = nextPrayer(place, now);
@@ -62,11 +63,17 @@ export default function Home() {
           <div className="xs muted">{gregorian(now)}</div>
           <div className="xs muted">{hijri(now)}</div>
         </div>
+        <div className="col" style={{ alignItems: 'flex-end', gap: 8 }}>
+        <a href="#/inbox" className="icon-btn" aria-label={unread ? `رسائل الرفيق — ${unread} جديدة` : 'رسائل الرفيق'} style={{ position: 'relative' }}>
+          <MessageCircleHeart size={20} />
+          {unread > 0 && <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ position: 'absolute', top: -5, left: -5, minWidth: 20, height: 20, padding: '0 5px', borderRadius: 999, background: '#E3A14A', color: '#1B1405', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--bg)' }}>{ar(unread)}</motion.span>}
+        </a>
         <div className="row" style={{ gap: 6, padding: 6, borderRadius: 999, background: 'var(--surf)', border: '1px solid var(--line)' }} role="radiogroup" aria-label="الثيم">
           {THEME_ORDER.map((id) => (
             <button key={id} role="radio" aria-checked={settings.theme === id} aria-label={'ثيم ' + THEMES[id].name} onClick={() => setSetting('theme', id)}
               style={{ width: 24, height: 24, borderRadius: '50%', padding: 0, background: `linear-gradient(135deg, ${THEMES[id].bg} 50%, ${THEMES[id].acc} 50%)`, border: '2px solid ' + (settings.theme === id ? 'var(--acc)' : 'transparent'), boxShadow: settings.theme === id ? '0 0 0 2px var(--bg)' : 'none' }} />
           ))}
+        </div>
         </div>
       </header>
 
