@@ -1,4 +1,4 @@
-// تشغيل صوت القصص المولَّد مسبقًا (ملفات MP3 بصوت شاكر). عند الآيات: يقول الراوي «قال الله تعالى…»
+// تشغيل صوت القصص المولَّد مسبقًا (ملفات MP3 بصوت الراوي). عند الآيات: يقول الراوي «قال الله تعالى…»
 // ثم يتوقف لحظات ليقرأ المستخدم الآية المعروضة، ثم يتابع. وإن لم تتوفر ملفات للفصل يُستخدم صوت الجهاز.
 import { useEffect, useRef, useState } from 'react';
 
@@ -39,7 +39,7 @@ export function useStoryAudio(story, quranText) {
     a.play().catch(() => stop());
     if ('mediaSession' in navigator) {
       try {
-        navigator.mediaSession.metadata = new MediaMetadata({ title: story.title, artist: 'الرفيق', album: story.col?.title || 'القصص' });
+        navigator.mediaSession.metadata = new MediaMetadata({ title: story.title, artist: 'الراوي محمد الدولي', album: story.col?.title || 'القصص' });
         navigator.mediaSession.setActionHandler('pause', pause);
         navigator.mediaSession.setActionHandler('play', resume);
         navigator.mediaSession.setActionHandler('nexttrack', () => playAt(idxRef.current + 1));

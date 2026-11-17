@@ -11,7 +11,12 @@ import { sound } from '../lib/sound.js';
 import { back, go } from '../router.js';
 import { toast } from '../components/ui.jsx';
 import { useStoryAudio } from '../lib/storyAudio.js';
-import { Play, SkipBack, SkipForward, Square } from 'lucide-react';
+import { Play, SkipBack, SkipForward, Square, X } from 'lucide-react';
+import { HL, DEFAULTS } from '../lib/recite.js';
+import { HlPicker } from '../components/Recite.jsx';
+import Sheet from '../components/Sheet.jsx';
+import { AnimatePresence } from 'framer-motion';
+const NARRATOR = 'محمد الدولي';
 
 // قراءة صوتية تجريبية بأصوات الجهاز العربية — تتخطى الآيات احترامًا للتلاوة الصحيحة
 function useSpeech(paragraphs) {
@@ -46,6 +51,9 @@ export default function StoryReader({ id }) {
   const speech = useSpeech(s?.body || []);
   const narr = useStoryAudio(s || { id: '' }, (i) => { const p = s?.body[i]; return p && p.q ? Q[p.q] : ''; });
   const [rate, setRate] = useState(1);
+  const rset = useStore((x) => x.settings.recite);
+  const hl = (HL[(rset || DEFAULTS).hl] || HL.gold)[1];
+  const [colors, setColors] = useState(false);
   const listening = narr.active || speech.playing;
   const curPara = narr.active ? narr.cur : speech.cur;
   const toggleListen = () => {
@@ -90,7 +98,7 @@ export default function StoryReader({ id }) {
   const fs = 18.5 * scale;
 
   return (
-    <div className="screen no-nav" style={{ paddingTop: 0 }}>
+    <div className="screen no-nav" style={{ paddingTop: 0, paddingBottom: narr.active ? 120 : undefined }}>
       <div style={{ position: 'sticky', top: 0, zIndex: 20, margin: '0 -18px', padding: 'calc(env(safe-area-inset-top) + 10px) 18px 10px', background: 'color-mix(in srgb, var(--bg) 88%, transparent)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
         <div className="between">
           <button className="icon-btn" aria-label="رجوع" onClick={() => back('/stories/' + s.col.id)}><ChevronRight size={20} /></button>
@@ -113,18 +121,26 @@ export default function StoryReader({ id }) {
         </div>
       </motion.header>
 
+      {!listening && (
+        <motion.button whileTap={{ scale: .97 }} className="rc-cta" style={{ '--h': '#1E9E74' }} onClick={toggleListen} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+          <span className="rc-cta-ic"><Headphones size={20} /></span>
+          <span className="col" style={{ flex: 1, minWidth: 0, gap: 0, textAlign: 'start' }}><b>{narr.available ? 'استمع للقصة' : 'استمع للقصة (صوت الجهاز)'}</b><span className="xs" style={{ opacity: .85 }}>{narr.available ? `بصوت الراوي ${NARRATOR}` : 'التسجيل الصوتي للفصل ده قريب بإذن الله'}</span></span>
+          <Play size={20} fill="currentColor" />
+        </motion.button>
+      )}
+
       <article className="col" style={{ gap: 16 }}>
         {s.body.map((p, i) => typeof p === 'string' ? (
-          <p key={i} id={'para-' + i} className="amiri" style={{ margin: 0, fontSize: fs, lineHeight: 2.05, textAlign: 'justify', padding: curPara === i ? '6px 10px' : 0, borderRadius: 12, background: curPara === i ? 'color-mix(in srgb, var(--acc) 14%, transparent)' : 'transparent', transition: 'all .3s' }}>{p}</p>
+          <p key={i} id={'para-' + i} className={'amiri st-para' + (curPara === i ? ' on' : listening ? ' dim' : '')} style={{ '--hl': hl, fontSize: fs }}>{p}</p>
         ) : (
-          <figure key={i} id={'para-' + i} className="card center" style={{ margin: 0, background: 'var(--surf)', borderColor: 'var(--acc)', boxShadow: curPara === i ? '0 0 0 3px color-mix(in srgb, var(--acc) 35%, transparent)' : 'none', transition: 'box-shadow .3s' }}>
+          <figure key={i} id={'para-' + i} className="card center" style={{ margin: 0, background: 'var(--surf)', borderColor: 'var(--acc)', boxShadow: curPara === i ? `0 0 0 3px ${hl}, 0 0 30px -6px ${hl}` : 'none', opacity: listening && curPara !== i ? .5 : 1, transition: 'box-shadow .3s, opacity .3s' }}>
             <p className="hafs" style={{ margin: 0, fontSize: fs + 2, lineHeight: 2.15 }}>﴿{Q[p.q]}﴾</p>
             <figcaption className="xs muted" style={{ marginTop: 4 }}>{refName(p.q)}</figcaption>
           </figure>
         ))}
       </article>
 
-      <section id="lessons" className="card col" style={{ gap: 8, borderColor: curPara === 'lessons' ? 'var(--acc)' : 'var(--line)' }}>
+      <section id="lessons" className="card col" style={{ gap: 8, borderColor: curPara === 'lessons' ? hl : 'var(--line)', boxShadow: curPara === 'lessons' ? `0 0 0 2px ${hl}, 0 0 30px -6px ${hl}` : 'none', background: curPara === 'lessons' ? `color-mix(in srgb, ${hl} 14%, var(--surf))` : undefined, opacity: listening && curPara !== 'lessons' ? .5 : 1, transition: 'all .3s' }}>
         <div className="row h2"><Lightbulb size={18} className="accent" aria-hidden="true" />دروس وعبر</div>
         {s.lessons.map((l, i) => <div key={i} className="row small" style={{ alignItems: 'flex-start', lineHeight: 1.85 }}><span style={{ flex: 'none', width: 7, height: 7, marginTop: 10, borderRadius: '50%', background: 'var(--acc)' }} />{l}</div>)}
         <div className="xs muted" style={{ borderTop: '1px dashed var(--line)', paddingTop: 8, marginTop: 4 }}>المصادر: {s.src}</div>
@@ -137,19 +153,27 @@ export default function StoryReader({ id }) {
         {next ? <a className="btn" href={'#/story/' + next.id} style={{ justifyContent: 'flex-end' }}><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{next.title}</span><ChevronLeft size={18} /></a> : <a className="btn" href={'#/stories/' + s.col.id}>العودة للفهرس</a>}
       </div>
       {narr.active && (
-        <motion.div initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} style={{ position: 'fixed', bottom: 'calc(env(safe-area-inset-bottom) + 12px)', left: 12, right: 12, maxWidth: 496, margin: '0 auto', zIndex: 40, padding: '10px 12px', borderRadius: 22, background: 'var(--nav)', border: '1px solid var(--line)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', boxShadow: '0 14px 34px -12px rgba(0,0,0,.5)' }}>
-          <div className="between" style={{ gap: 8 }}>
-            <div className="col" style={{ gap: 0, minWidth: 0, flex: 1 }}>
-              <span className="small" style={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.title}</span>
-              <span className="xs muted">{narr.waiting ? 'تأمّل الآية… يتابع الراوي بعد لحظات' : 'بصوت الراوي شاكر'}</span>
+        <motion.div className="rc-dock st-dock" style={{ '--h': '#1E9E74' }} initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
+          <span className="rc-glow" aria-hidden="true" />
+          <button className="rc-play" onClick={narr.playing ? narr.pause : narr.resume} aria-label={narr.playing ? 'إيقاف مؤقت' : 'تشغيل'}>
+            <span className="rc-play-in">{narr.playing ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" style={{ marginRight: -3 }} />}</span>
+          </button>
+          <div className="col" style={{ flex: 1, minWidth: 0, gap: 3 }}>
+            <div className="row" style={{ gap: 6 }}><span className={'rc-eq' + (narr.playing ? ' on' : '')} aria-hidden="true">{[0, 1, 2, 3].map((k) => <i key={k} style={{ animationDelay: `${k * -0.22}s` }} />)}</span><b className="rc-title">{s.title}</b></div>
+            <span className="rc-sub">{narr.waiting ? 'تأمّل الآية… يتابع الراوي بعد لحظات' : `بصوت الراوي ${NARRATOR}`}</span>
+            <div className="row" style={{ gap: 5 }}>
+              <button className="rc-tag" style={{ border: 0, color: '#fff' }} onClick={() => { const r = rate === 1 ? 1.25 : rate === 1.25 ? 0.9 : 1; setRate(r); narr.setRate(r); }}>{rate === 1 ? '١×' : rate === 1.25 ? '١٫٢٥×' : '٠٫٩×'}</button>
+              <button className="rc-tag" style={{ border: 0, color: '#fff' }} onClick={() => setColors(true)}><span style={{ width: 9, height: 9, borderRadius: '50%', background: hl, display: 'inline-block' }} /> اللون</button>
             </div>
-            <button className="icon-btn" style={{ width: 40, height: 40 }} aria-label="السابق" onClick={narr.prev}><SkipForward size={17} /></button>
-            <button className="icon-btn" style={{ width: 46, height: 46, background: 'var(--acc)', color: 'var(--onAcc)', border: 0 }} aria-label={narr.playing ? 'إيقاف مؤقت' : 'تشغيل'} onClick={narr.playing ? narr.pause : narr.resume}>{narr.playing ? <Pause size={20} /> : <Play size={20} />}</button>
-            <button className="icon-btn" style={{ width: 40, height: 40 }} aria-label="التالي" onClick={narr.next}><SkipBack size={17} /></button>
-            <button className="icon-btn" style={{ width: 40, height: 40, fontSize: 12, fontWeight: 600 }} aria-label="سرعة القراءة" onClick={() => { const r = rate === 1 ? 1.25 : rate === 1.25 ? 0.9 : 1; setRate(r); narr.setRate(r); }}>{rate === 1 ? '١×' : rate === 1.25 ? '١٫٢٥×' : '٠٫٩×'}</button>
           </div>
+          <div className="rc-btns">
+            <button aria-label="الفقرة السابقة" onClick={narr.prev}><SkipForward size={19} /></button>
+            <button aria-label="الفقرة التالية" onClick={narr.next}><SkipBack size={19} /></button>
+          </div>
+          <div className="rc-side"><button aria-label="إيقاف الاستماع" onClick={() => narr.stop()}><X size={16} /></button></div>
         </motion.div>
       )}
+      <AnimatePresence>{colors && <Sheet onClose={() => setColors(false)} label="لون التحديد"><div className="col" style={{ gap: 14 }}><HlPicker /><button className="btn" onClick={() => setColors(false)}>تمام</button></div></Sheet>}</AnimatePresence>
     </div>
   );
 }

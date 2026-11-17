@@ -278,3 +278,8 @@ input[type=range] { accent-color: var(--acc); }
 .hl-dot { --c: #E2A92B; width: 38px; height: 38px; border-radius: 50%; border: 0; display: grid; place-items: center; color: #fff; background: var(--c); box-shadow: 0 0 0 2px var(--bg), 0 0 0 2px transparent; transition: box-shadow .2s, transform .2s; }
 .hl-dot.on { box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--c); transform: scale(1.06); }
 .hl-sample { font-family: 'KFGQPC Hafs', 'Amiri', serif; font-size: 22px; text-align: center; padding: 12px; border-radius: 16px; background: var(--page); color: var(--pageText); line-height: 2; }
+.st-para { margin: 0; line-height: 2.05; text-align: justify; padding: 8px 12px; border-radius: 16px; border-right: 4px solid transparent; transition: background .35s, border-color .35s, opacity .35s, box-shadow .35s; }
+.st-para.on { background: color-mix(in srgb, var(--hl) 20%, transparent); border-right-color: var(--hl); box-shadow: 0 10px 30px -18px var(--hl); }
+.st-para.dim { opacity: .5; }
+.st-dock { position: fixed !important; bottom: calc(env(safe-area-inset-bottom) + 12px); left: 12px; right: 12px; width: auto; max-width: 496px; margin: 0 auto; z-index: 40; }
+.rc-tag { white-space: nowrap; }
