@@ -130,7 +130,7 @@ export default function Settings() {
           <div className="col" style={{ width: '100%', gap: 8 }}>
             <div className="small accent">يتوفر إصدار جديد: v{upd.latest}</div>
             {upd.notes?.length > 0 && <ul className="xs muted" style={{ textAlign: 'right', margin: 0, lineHeight: 1.9 }}>{upd.notes.map((n, i) => <li key={i}>{n}</li>)}</ul>}
-            <button className="btn" onClick={applyUpdate}><Download size={18} />تحديث الآن</button>
+            <button className="btn" onClick={() => applyUpdate(upd.latest)}><Download size={18} />تحديث الآن</button>
           </div>
         ) : (
           <button className="btn ghost" style={{ width: '100%' }} onClick={check} disabled={upd.state === 'checking'}>

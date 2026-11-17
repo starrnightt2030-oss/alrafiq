@@ -8,7 +8,10 @@ import { isNative } from '../lib/native.js';
 import { sound } from '../lib/sound.js';
 import { APP } from '../config.js';
 
-const KEY = 'rf-upd-later';
+// التنبيه يظهر مرة واحدة لكل إصدار جديد؛ بعدها التحديث متاح من الإعدادات
+const KEY = 'rf-upd-shown';
+const shown = () => { try { return localStorage.getItem(KEY); } catch { return null; } };
+const markShown = (v) => { try { localStorage.setItem(KEY, v); } catch {} };
 
 export default function UpdatePrompt({ ready }) {
   const [info, setInfo] = useState(null);
@@ -18,7 +21,7 @@ export default function UpdatePrompt({ ready }) {
     let last = 0;
     const run = async () => {
       if (Date.now() - last < 60000 || !navigator.onLine) return; last = Date.now();
-      try { const r = await checkForUpdate(); if (r.hasUpdate && sessionStorage.getItem(KEY) !== r.latest) { setInfo(r); sound.notify?.(); } } catch {}
+      try { const r = await checkForUpdate(); if (r.hasUpdate && shown() !== r.latest) { markShown(r.latest); setInfo(r); sound.notify?.(); } } catch {}
     };
     const t = setTimeout(run, 1500);
     const vis = () => document.visibilityState === 'visible' && run();
@@ -26,8 +29,8 @@ export default function UpdatePrompt({ ready }) {
     let sub; if (isNative) import('@capacitor/app').then(({ App }) => { sub = App.addListener('resume', run); });
     return () => { clearTimeout(t); document.removeEventListener('visibilitychange', vis); sub?.then?.((h) => h.remove()); };
   }, [ready]);
-  const later = () => { sessionStorage.setItem(KEY, info.latest); setInfo(null); };
-  const go = async () => { setBusy(true); try { await applyUpdate(); } finally { if (isNative) { setBusy(false); setInfo(null); } } };
+  const later = () => setInfo(null);
+  const go = async () => { setBusy(true); try { await applyUpdate(info.latest); } finally { if (isNative) { setBusy(false); setInfo(null); } } };
   return (
     <AnimatePresence>
       {info && (
@@ -40,7 +43,7 @@ export default function UpdatePrompt({ ready }) {
             {info.notes.length > 0 && (
               <ul className="upd-notes">{info.notes.map((n, i) => <motion.li key={i} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: .2 + i * .07 }}>{n}</motion.li>)}</ul>
             )}
-            {isNative && <div className="xs muted" style={{ lineHeight: 1.8 }}>هيتحمّل ملف التحديث، افتحه واضغط «تثبيت» — بياناتك كلها هتفضل زي ما هي.</div>}
+            {isNative && <div className="xs muted" style={{ lineHeight: 1.8 }}>هيتحمّل ملف التحديث، افتحه من التنزيلات واضغط «تثبيت» — بياناتك كلها هتفضل زي ما هي. ولو أجّلته، هتلاقي التحديث في الإعدادات.</div>}
             <motion.button whileTap={{ scale: .97 }} className="btn q-go" onClick={go} disabled={busy}>{isNative ? <Download size={18} /> : <RefreshCw size={18} className={busy ? 'spin' : ''} />} {busy ? 'جارٍ التحديث…' : 'حدّث الآن'}</motion.button>
             <button className="btn ghost" onClick={later}>لاحقًا</button>
           </div>
