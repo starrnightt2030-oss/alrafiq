@@ -27,7 +27,7 @@ export function useStoryAudio(story, quranText) {
     const p = parts[n];
     if (!audio.current) audio.current = new Audio();
     const a = audio.current;
-    a.src = new URL('audio/stories/' + p.f, document.baseURI).href;
+    a.src = /^https?:/.test(p.f) ? p.f : new URL('audio/stories/' + p.f, document.baseURI).href; // الآيات بصوت قارئ من مصدر التلاوة
     a.playbackRate = rate.current;
     a.onended = () => {
       if (p.q) { setState((s) => ({ ...s, waiting: true })); timer.current = setTimeout(() => playAt(n + 1), readingPause(quranText(p.i))); }

@@ -18,7 +18,7 @@ const lexicon = JSON.parse(readFileSync(join(root, 'scripts/tts-lexicon.json'), 
 const outDir = process.env.DRY ? join('/tmp', 'tts-dry') : join(root, 'public/audio/stories');
 const manifestPath = join(outDir, 'manifest.json');
 const manifest = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, 'utf8')) : { voice: VOICE, stories: {} };
-if (manifest.voice !== VOICE) manifest.stories = {}; // تغيير الصوت = إعادة توليد الكل
+if (manifest.voice !== VOICE) manifest.stories = Object.fromEntries(Object.entries(manifest.stories).filter(([, v]) => v.manual)); // تغيير الصوت = إعادة توليد الكل
 manifest.voice = VOICE;
 
 // تجهيز النص للنطق: الرموز والاختصارات وقاموس النطق
@@ -68,6 +68,7 @@ for (const f of files) {
   const stories = Object.values(mod).flat();
   for (const st of stories) {
     if (ONLY && st.id !== ONLY) continue;
+    if (manifest.stories[st.id]?.manual) continue; // قصص بصوت مسجّل يدويًّا لا تُستبدل
     const parts = [{ k: 'intro', text: `${st.title}. ${st.sub}.` }];
     st.body.forEach((p, i) => parts.push(typeof p === 'string' ? { k: 'p' + i, i, text: p } : { k: 'q' + i, i, q: true, text: refIntro(p.q) }));
     parts.push({ k: 'lessons', text: 'دروس وعبر: ' + st.lessons.join('. ') });
