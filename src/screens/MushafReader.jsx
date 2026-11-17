@@ -11,8 +11,8 @@ import { firstMemorize, schedule, dueReviews } from '../lib/hifz.js';
 import { toast } from '../components/ui.jsx';
 import { sound } from '../lib/sound.js';
 import { Eye, EyeOff, Headphones } from 'lucide-react';
-import { ReciteDock, ReciteSheet, AyahMenu } from '../components/Recite.jsx';
-import { useRecite, start as reciteStart, stop as reciteStop, DEFAULTS } from '../lib/recite.js';
+import { ReciteDock, ReciteSheet, AyahMenu, StartSheet, Avatar } from '../components/Recite.jsx';
+import { useRecite, start as reciteStart, stop as reciteStop, DEFAULTS, HL, reciterOf } from '../lib/recite.js';
 
 function SuraHead({ name }) {
   return (
@@ -82,7 +82,12 @@ export default function MushafReader({ page: initial, mode }) {
   const [hidden, setHidden] = useState(false);
   const rc = useRecite();
   const rcActive = useRef(false); rcActive.current = rc.active;
-  const follow = useStore((s) => (s.settings.recite || DEFAULTS).follow !== false);
+  const rset = useStore((s) => s.settings.recite);
+  const ropt = { ...DEFAULTS, ...(rset || {}) };
+  const follow = ropt.follow !== false;
+  const [startSheet, setStartSheet] = useState(false);
+  const [tip, setTip] = useState(() => { try { return !localStorage.getItem('rf-tip-recite'); } catch { return false; } });
+  const closeTip = () => { setTip(false); try { localStorage.setItem('rf-tip-recite', '1'); } catch {} };
   const [sheet, setSheet] = useState(false);
   const [menu, setMenu] = useState(null);
   const [segStart, setSegStart] = useState(null);
@@ -101,7 +106,7 @@ export default function MushafReader({ page: initial, mode }) {
   useEffect(() => {
     const calc = () => {
       const vh = window.innerHeight, vw = Math.min(window.innerWidth, 520);
-      const h = Math.max(360, vh - (mode ? 260 : 150) - (rcActive.current ? 52 : 0)), w = Math.min(vw - 20, h * 0.66);
+      const h = Math.max(360, vh - (mode ? 260 : 150) - 56), w = Math.min(vw - 20, h * 0.66);
       setSize({ w: Math.round(w), h: Math.round(Math.min(h, w / 0.62)) });
     };
     calc(); addEventListener('resize', calc); return () => removeEventListener('resize', calc);
@@ -116,14 +121,15 @@ export default function MushafReader({ page: initial, mode }) {
   useEffect(() => { if (!rc.key || !follow) return; const p = pageOf(rc.key); if (p && p !== page) { setDir(p > page ? 1 : -1); setPage(p); } }, [rc.key?.s, rc.key?.a]); // eslint-disable-line
   const pageRange = data && data.pages[page]?.length ? (() => { const a = data.pages[page]; return { from: { s: a[0].s, a: a[0].a }, to: { s: a[a.length - 1].s, a: a[a.length - 1].a } }; })() : null;
   const juzRange = (() => { if (!data) return null; const jj = juzAt(page); const all = JUZ_LIST; const i = all.findIndex((x) => x.juz === jj.juz); const p1 = jj.page, p2 = i < all.length - 1 ? all[i + 1].page - 1 : TOTAL_PAGES; const f = data.pages[p1][0]; const l = data.pages[p2][data.pages[p2].length - 1]; return { juz: jj.juz, from: { s: f.s, a: f.a }, to: { s: l.s, a: l.a } }; })();
-  const listen = () => { if (rc.active) { setSheet(true); return; } if (pageRange) { reciteStart(pageRange.from); vibrate(10); } };
+  const listen = () => { closeTip(); if (rc.active) { setSheet(true); return; } setStartSheet(true); vibrate(8); };
+  const begin = () => { if (pageRange) { reciteStart(pageRange.from); vibrate(10); } };
 
   const turn = (d) => { const p = page + d; if (p < 1 || p > TOTAL_PAGES) return; setDir(d); setPage(p); vibrate(6); };
   const marked = bookmarks.includes(page);
   const s = surahAt(page), j = juzAt(page);
 
   return (
-    <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', padding: 'calc(env(safe-area-inset-top) + 10px) 10px calc(env(safe-area-inset-bottom) + 14px)', gap: 10, overflow: 'hidden' }}>
+    <div style={{ '--hl': (HL[ropt.hl] || HL.gold)[1], minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', padding: 'calc(env(safe-area-inset-top) + 10px) 10px calc(env(safe-area-inset-bottom) + 14px)', gap: 10, overflow: 'hidden' }}>
       <div className="between" style={{ width: '100%', maxWidth: 500 }}>
         <button className="icon-btn" aria-label="فهرس المصحف" onClick={() => go('/quran')}><List size={20} /></button>
         <div className="center"><div className="amiri" style={{ fontSize: 19, fontWeight: 700 }}>سورة {s.name}</div><div className="xs muted">الجزء {ar(j.juz)}</div></div>
@@ -153,6 +159,20 @@ export default function MushafReader({ page: initial, mode }) {
       </div>
 
       <AnimatePresence>{rc.active && <ReciteDock key="dock" onSettings={() => setSheet(true)} />}</AnimatePresence>
+      {!rc.active && (
+        <div style={{ position: 'relative', width: '100%', maxWidth: 500 }}>
+          <AnimatePresence>{tip && (
+            <motion.button className="rc-tip" onClick={listen} initial={{ opacity: 0, y: 10, scale: .9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10 }} transition={{ delay: 1, type: 'spring' }}>
+              <b>جديد ✨</b> اسمع المصحف بصوت ١٠ قرّاء والآية بتنوّر معاك
+            </motion.button>
+          )}</AnimatePresence>
+          <motion.button whileTap={{ scale: .97 }} className="rc-cta" style={{ '--h': reciterOf(ropt.reciter).hue }} onClick={listen}>
+            <span className="rc-cta-ic"><Headphones size={20} /></span>
+            <span className="col" style={{ flex: 1, minWidth: 0, gap: 0, textAlign: 'start' }}><b>استمع للتلاوة</b><span className="xs" style={{ opacity: .85 }}>{reciterOf(ropt.reciter).name} — اضغط لتغيير القارئ</span></span>
+            <Avatar r={reciterOf(ropt.reciter)} size={34} />
+          </motion.button>
+        </div>
+      )}
       {!rc.active && <div className="between" style={{ width: '100%', maxWidth: 500 }}>
         <button className="icon-btn" aria-label="الصفحة السابقة" disabled={page <= 1} onClick={() => turn(-1)}><ChevronRight size={20} /></button>
         <label className="row" style={{ flex: 1, gap: 8, padding: '0 10px' }}>
@@ -180,6 +200,7 @@ export default function MushafReader({ page: initial, mode }) {
         </div>
       )}
       <AnimatePresence>
+        {startSheet && <StartSheet key="ss" onClose={() => setStartSheet(false)} onStart={begin} pageLabel={'من أول صفحة ' + ar(page)} />}
         {sheet && <ReciteSheet key="rs" onClose={() => setSheet(false)} page={page} pageAyahs={data?.pages[page]} juzRange={juzRange} />}
         {menu && <AyahMenu key="am" k={menu} segStart={segStart} onSegStart={setSegStart} pageRange={pageRange} onClose={() => setMenu(null)} />}
       </AnimatePresence>

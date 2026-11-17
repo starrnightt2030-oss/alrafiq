@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Play, Pause, SkipForward, SkipBack, X, SlidersHorizontal, Repeat, Repeat1, Download, Check, Trash2, Headphones, Flag, ListMusic, Loader2, CircleStop } from 'lucide-react';
 import Sheet from './Sheet.jsx';
 import { useStore } from '../store.js';
-import { useRecite, toggle, skip, stop, start, RECITERS, reciterOf, DEFAULTS, setReciteOpt, download, isDownloaded, clearDownloads, surahKeys, ayahList } from '../lib/recite.js';
+import { useRecite, toggle, skip, stop, start, RECITERS, reciterOf, DEFAULTS, HL, setReciteOpt, download, isDownloaded, clearDownloads, surahKeys, ayahList } from '../lib/recite.js';
 import { SURAHS } from '../lib/quran.js';
 import { ar } from '../lib/arabic.js';
 import { vibrate } from '../lib/haptics.js';
@@ -64,6 +64,54 @@ function Eq({ on }) {
   return <span className={'rc-eq' + (on ? ' on' : '')} aria-hidden="true">{[0, 1, 2, 3].map((i) => <i key={i} style={{ animationDelay: `${i * -0.22}s` }} />)}</span>;
 }
 
+// ——— شبكة القرّاء ولون التظليل (مشتركة) ———
+function ReciterGrid({ onPick }) {
+  const o = useOpts();
+  return (
+    <div className="rc-grid">
+      {RECITERS.map((r) => { const on = o.reciter === r.id; return (
+        <motion.button key={r.id} whileTap={{ scale: .96 }} className={'rc-card' + (on ? ' on' : '')} style={{ '--h': r.hue }} onClick={() => { setReciteOpt({ reciter: r.id }); vibrate(8); onPick?.(r); }} aria-pressed={on}>
+          <Avatar r={r} size={40} />
+          <span className="col" style={{ minWidth: 0, gap: 1, textAlign: 'start' }}><b className="rc-cn">{r.name}</b><span className="xs muted">{r.style}</span></span>
+          {on && <span className="rc-check"><Check size={13} strokeWidth={3} /></span>}
+        </motion.button>
+      ); })}
+    </div>
+  );
+}
+export function HlPicker() {
+  const o = useOpts();
+  return (
+    <div className="col" style={{ gap: 8 }}>
+      <span className="small" style={{ fontWeight: 600 }}>لون تظليل الآية</span>
+      <div className="row" style={{ gap: 10, flexWrap: 'wrap' }} role="radiogroup" aria-label="لون التظليل">
+        {Object.entries(HL).map(([k, [name, c]]) => (
+          <button key={k} role="radio" aria-checked={o.hl === k} aria-label={name} className={'hl-dot' + (o.hl === k ? ' on' : '')} style={{ '--c': c }} onClick={() => { setReciteOpt({ hl: k }); vibrate(6); }}>{o.hl === k && <Check size={15} strokeWidth={3} />}</button>
+        ))}
+      </div>
+      <div className="hl-sample" style={{ '--hl': HL[o.hl]?.[1] || HL.gold[1] }}><span className="ayah on">ٱلْحَمْدُ لِلَّهِ رَبِّ ٱلْعَٰلَمِينَ</span></div>
+    </div>
+  );
+}
+
+// ——— لوح البدء: اختيار القارئ ثم التشغيل ———
+export function StartSheet({ onClose, onStart, pageLabel }) {
+  const o = useOpts(); const r = reciterOf(o.reciter);
+  return (
+    <Sheet onClose={onClose} label="اختيار القارئ">
+      <div className="col" style={{ gap: 14 }}>
+        <div className="row" style={{ gap: 10 }}><span className="hc-ic"><Headphones size={22} /></span><div className="col"><b className="h2">استمع للتلاوة</b><span className="xs muted">اختار القارئ وابدأ — {pageLabel}</span></div></div>
+        <ReciterGrid />
+        <HlPicker />
+        <motion.button whileTap={{ scale: .97 }} className="btn q-go rc-start" style={{ '--h': r.hue }} onClick={() => { onStart(); onClose(); }}>
+          <Play size={18} fill="currentColor" /> ابدأ التلاوة بصوت {r.name}
+        </motion.button>
+        <span className="xs muted center">نصيحة: اضغط مطوّل على أي آية علشان تبدأ منها أو تكرّرها</span>
+      </div>
+    </Sheet>
+  );
+}
+
 // ——— لوح الإعدادات ———
 function Seg({ value, options, onChange, label }) {
   return (
@@ -103,15 +151,8 @@ export function ReciteSheet({ onClose, page, pageAyahs, juzRange }) {
       <div className="col" style={{ gap: 16 }}>
         <div className="row" style={{ gap: 10 }}><span className="hc-ic"><Headphones size={22} /></span><div className="col"><b className="h2">التلاوة</b><span className="xs muted">اختار القارئ وطريقة الاستماع</span></div></div>
 
-        <div className="rc-grid">
-          {RECITERS.map((r) => { const on = o.reciter === r.id; return (
-            <motion.button key={r.id} whileTap={{ scale: .96 }} className={'rc-card' + (on ? ' on' : '')} style={{ '--h': r.hue }} onClick={() => pick(r)} aria-pressed={on}>
-              <Avatar r={r} size={40} />
-              <span className="col" style={{ minWidth: 0, gap: 1, textAlign: 'start' }}><b className="rc-cn">{r.name}</b><span className="xs muted">{r.style}</span></span>
-              {on && <span className="rc-check"><Check size={13} strokeWidth={3} /></span>}
-            </motion.button>
-          ); })}
-        </div>
+        <ReciterGrid onPick={(r) => { if (st.active && st.key) start(st.key, st.range); }} />
+        <HlPicker />
 
         <Seg label="سرعة التلاوة" value={o.rate} onChange={(v) => setReciteOpt({ rate: v })} options={[[0.75, '٠٫٧٥×'], [1, 'عادي'], [1.25, '١٫٢٥×'], [1.5, '١٫٥×']]} />
         <Seg label="تكرار كل آية" value={o.repeat} onChange={(v) => setReciteOpt({ repeat: v })} options={[[1, 'مرة'], [2, '٢'], [3, '٣'], [5, '٥'], [10, '١٠']]} />

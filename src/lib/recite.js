@@ -20,7 +20,9 @@ export const RECITERS = [
   { id: 'ayyoub', ini: 'أ', name: 'محمد أيوب', style: 'مرتّل', folder: 'Muhammad_Ayyoub_64kbps', hue: '#E2533E' },
 ];
 export const reciterOf = (id) => RECITERS.find((r) => r.id === id) || RECITERS[0];
-export const DEFAULTS = { reciter: 'minshawy', rate: 1, repeat: 1, gap: 0, range: 3, follow: true };
+export const DEFAULTS = { reciter: 'minshawy', rate: 1, repeat: 1, gap: 0, range: 3, follow: true, hl: 'gold' };
+// ألوان تظليل الآية الجاري تلاوتها
+export const HL = { gold: ['ذهبي', '#E2A92B'], green: ['أخضر', '#1FA36A'], blue: ['أزرق', '#2F7BEA'], rose: ['وردي', '#E0507A'], purple: ['بنفسجي', '#8B5CF6'], orange: ['برتقالي', '#F07A2A'] };
 const pad = (n) => String(n).padStart(3, '0');
 const fileOf = (s, a) => pad(s) + pad(a) + '.mp3';
 const urlOf = (folder, s, a) => BASE + folder + '/' + fileOf(s, a);
