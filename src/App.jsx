@@ -12,6 +12,7 @@ import { resolveLocation } from './lib/prayer.js';
 import { showNotification } from './lib/notify.js';
 import BottomNav from './components/BottomNav.jsx';
 import { MessageHost } from './components/Messages.jsx';
+import UpdatePrompt from './components/UpdatePrompt.jsx';
 import { startCompanion } from './lib/companion.js';
 import { setupNative, isNative } from './lib/native.js';
 import Inbox from './screens/Inbox.jsx';
@@ -94,6 +95,7 @@ export default function App() {
         <MessageHost />
       </div>
       <AnimatePresence>{splash && <Splash onDone={done} />}</AnimatePresence>
+      <UpdatePrompt ready={!splash && !adhan} />
       <AnimatePresence>{adhan && !splash && <AdhanOverlay prayer={adhan} tz={tz} autoplay={!isNative} onClose={() => setAdhan(null)} />}</AnimatePresence>
     </MotionConfig>
   );

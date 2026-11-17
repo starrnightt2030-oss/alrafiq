@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Award, Undo2, RotateCcw } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import HandCount from '../components/HandCount.jsx';
+import { Award, Undo2, RotateCcw, Hand, ChevronLeft } from 'lucide-react';
 import { useStore } from '../store.js';
 import { WIRD, MILESTONES } from '../data/wird.js';
 import { ar, arNum, todayKey } from '../lib/arabic.js';
@@ -14,6 +15,7 @@ const EMPTY = {};
 export default function Wird() {
   const [k, setK] = useState(0);
   const [armed, setArmed] = useState(null);
+  const [hand, setHand] = useState(false);
   const counts = useStore((s) => s.days[todayKey()]?.wird) || EMPTY;
   const addWird = useStore((s) => s.addWird);
   const resetWird = useStore((s) => s.resetWird);
@@ -68,6 +70,12 @@ export default function Wird() {
         </div>
       </div>
 
+      <motion.button whileTap={{ scale: .97 }} className="hand-btn" onClick={() => { setHand(true); sound.tap(); }}>
+        <span className="hc-ic"><Hand size={22} /></span>
+        <span className="col" style={{ flex: 1, gap: 2, textAlign: 'start' }}><b>عدّيت على إيدك أو سبحتك؟</b><span className="xs muted">اكتب العدد ونحسبه لك في الورد والأوسمة</span></span>
+        <ChevronLeft size={18} className="muted" />
+      </motion.button>
+
       <section aria-label="أوسمة هذا الذكر">
         <div className="xs muted" style={{ marginBottom: 8 }}>أوسمة «{z.short}» اليوم</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0,1fr))', gap: 8 }}>
@@ -87,6 +95,7 @@ export default function Wird() {
         <button className="btn soft" style={{ flex: 1 }} onClick={() => add(33)}><span className="ltr">+٣٣</span></button>
         <button className="btn soft" style={{ flex: 1 }} onClick={() => { if (!c) return; if (armed === z.id) { resetWird(z.id); setArmed(null); toast('تم تصفير العدّاد'); } else { setArmed(z.id); toast('اضغط «تصفير» مرة أخرى للتأكيد'); setTimeout(() => setArmed(null), 3000); } }}><RotateCcw size={17} />تصفير</button>
       </div>
+      <AnimatePresence>{hand && <HandCount z={z} current={c} total={total} goal={goal} onAdd={(n) => add(n)} onUndo={(n) => addWird(z.id, -n)} onClose={() => setHand(false)} />}</AnimatePresence>
     </div>
   );
 }
