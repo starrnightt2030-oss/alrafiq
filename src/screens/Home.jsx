@@ -182,9 +182,9 @@ function Continue({ suggest, sug, sugTotal, s, lastPage, ch }) {
       <div className="cont-strip">
         {items.map((it, i) => (
           <motion.a key={it.href} href={it.href} className="cont" style={{ '--g1': it.c[0], '--g2': it.c[1] }} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.06 }} whileTap={{ scale: .96 }}>
-            <span className="cont-art"><TileArt id={it.art} size={46} /></span>
+            <span className="cont-art"><TileArt id={it.art} size={38} /></span>
             <span className="col" style={{ minWidth: 0, gap: 1 }}><b className="small cont-t">{it.t}</b><span className="xs" style={{ opacity: .85 }}>{it.sub}</span></span>
-            <Play size={14} style={{ flex: 'none', opacity: .8 }} />
+            
           </motion.a>
         ))}
       </div>
