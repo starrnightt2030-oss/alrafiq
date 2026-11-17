@@ -13,17 +13,30 @@ import logo from '../assets/logo.webp';
 import { STATUS, STATUS_ORDER } from '../lib/stats.js';
 import { useChallengeWatcher } from './Challenges.jsx';
 import { vibrate } from '../lib/haptics.js';
+import TileArt from '../components/TileArt.jsx';
+import { dueReviews, memorizedCount } from '../lib/hifz.js';
+import { STORY } from '../data/stories/index.js';
+import { qiblaBearing } from '../lib/qibla.js';
+import { useState } from 'react';
+import { sound } from '../lib/sound.js';
+import { ArrowLeftRight, Check, RotateCcw, Play } from 'lucide-react';
 
-const TILES = [
-  { to: '/azkar', label: 'الأذكار', Icon: BookOpen },
-  { to: '/wird', label: 'الورد', Icon: CircleDot },
-  { to: '/hifz', label: 'الحفظ', Icon: GraduationCap },
-    { to: '/duas', label: 'الأدعية', Icon: HandHeart },
-  { to: '/ruqyah', label: 'الرقية', Icon: ShieldCheck },
-  { to: '/challenges', label: 'التحديات', Icon: Trophy },
-  { to: '/report', label: 'تقييمي', Icon: ChartColumn },
-  { to: '/stories', label: 'القصص', Icon: Headphones },
-];
+// المربعات: كل قسم بتدرّج ألوان خاص ورسمة معبّرة، و«wide» للمربعات العريضة
+export const TILES = {
+  azkar: { to: '/azkar', label: 'الأذكار', sub: 'حصن المسلم كاملًا', c: ['#1E9E74', '#0B5E46'] },
+  quran: { to: '/quran', label: 'المصحف الشريف', sub: 'قراءة بخط المصحف المعتمد', c: ['#2F5FD0', '#172E78'], wide: true },
+  wird: { to: '/wird', label: 'الورد اليومي', sub: 'تسبيح واستغفار', c: ['#16A2B0', '#0B5A6E'] },
+  hifz: { to: '/hifz', label: 'الحفظ', sub: 'متابعة ومراجعة', c: ['#8A55D6', '#4A2A8C'] },
+  quiz: { to: '/quiz', label: 'فاستبقوا الخيرات', sub: 'مسابقة بمراحل وشهادة', c: ['#D99A2B', '#8A4B0E'], wide: true },
+  stories: { to: '/stories', label: 'القصص', sub: 'سيرة وصحابة وأنبياء', c: ['#E0743A', '#8C2E16'] },
+  duas: { to: '/duas', label: 'الأدعية', sub: 'من القرآن والسنة', c: ['#D6588A', '#7E1F4A'] },
+  ruqyah: { to: '/ruqyah', label: 'الرقية', sub: 'الرقية الشرعية', c: ['#3C7FD8', '#163E80'] },
+  challenges: { to: '/challenges', label: 'التحديات', sub: 'أوسمة ونقاط', c: ['#E2533E', '#8E1E1E'] },
+  report: { to: '/report', label: 'تقييمي', sub: 'أسبوعي وشهري', c: ['#5B6BE0', '#2C2F86'] },
+  qibla: { to: '/qibla', label: 'القبلة', sub: 'بوصلة حيّة', c: ['#4A4A52', '#16161C'] },
+  prayer: { to: '/prayer', label: 'مواقيت الصلاة', sub: 'وسجلّ صلواتك', c: ['#2A9D8F', '#145A52'] },
+};
+export const TILE_ORDER = ['azkar', 'quran', 'wird', 'hifz', 'quiz', 'stories', 'duas', 'ruqyah', 'challenges', 'report', 'qibla', 'prayer'];
 
 const surahOfPage = (p) => { let s = quranMeta.surahs[0]; for (const x of quranMeta.surahs) { if (x.page <= p) s = x; else break; } return s; };
 
@@ -135,56 +148,13 @@ export default function Home() {
             <div className="between small"><span>الورد اليومي</span><span className="muted">{arNum(wirdTotal)} من {arNum(goal)}</span></div>
             <div className="bar"><i style={{ width: Math.min(100, (wirdTotal / goal) * 100) + '%' }} /></div>
           </div>
-          <div className="between xs muted"><span>{arNum(points)} نقطة</span><span>المستوى {ar(level)}</span></div>
+          <div className="between xs muted"><span><Flame size={12} className="accent" style={{ verticalAlign: -2 }} /> {streak ? `سلسلة ${daysAr(streak)}` : 'ابدأ سلسلتك'}</span><span>{arNum(points)} نقطة — المستوى {ar(level)}</span></div>
         </div>
       </section>
 
-      <div className="grid2">
-        <a href={'#/azkar/' + suggest} className="card" style={{ textDecoration: 'none', color: 'var(--text)' }}>
-          {suggest === 'morning' ? <Sunrise className="accent" size={24} aria-hidden="true" /> : <Sunset className="accent" size={24} aria-hidden="true" />}
-          <div className="h2" style={{ marginTop: 8 }}>{AZKAR[suggest].title}</div>
-          <div className="xs muted">{sug?.done ? 'أتممتها اليوم، تقبّل الله' : sug ? `توقفت عند ${ar(Math.min(sug.i + 1, sugTotal))} من ${ar(sugTotal)}` : `${ar(sugTotal)} ذكرًا`}</div>
-        </a>
-        <a href={'#/quran/' + quran.lastPage} className="card" style={{ textDecoration: 'none', color: 'var(--text)' }}>
-          <BookMarked className="accent" size={24} aria-hidden="true" />
-          <div className="h2" style={{ marginTop: 8 }}>تابع القراءة</div>
-          <div className="xs muted">سورة {s.name} · صفحة {ar(quran.lastPage)}</div>
-        </a>
-      </div>
+      <Continue suggest={suggest} sug={sug} sugTotal={sugTotal} s={s} lastPage={quran.lastPage} ch={ch} />
 
-      {ch.c && (
-        <a href="#/challenges" className="card hl col" style={{ textDecoration: 'none', color: 'var(--text)', gap: 8 }}>
-          <div className="between"><span className="xs accent" style={{ fontWeight: 600 }}>تحدّيك الحالي</span><span className="xs muted">{ch.started ? (ch.expired ? 'انتهت المدة' : `${arNum(ch.value)} من ${arNum(ch.c.target)}`) : 'لم يبدأ — اضغط للبدء'}</span></div>
-          <div className="h2" style={{ lineHeight: 1.5 }}>{ch.c.title}</div>
-          <div className="bar"><i style={{ width: Math.round(ch.pct * 100) + '%' }} /></div>
-          <div className="xs muted">الجزاء: وسام «{ch.c.badge}» و{arNum(ch.c.points)} نقطة</div>
-        </a>
-      )}
-
-      <div className="card between">
-        <div className="row"><Flame className="accent" size={24} aria-hidden="true" /><div><div className="h2">{streak ? `سلسلة ${daysAr(streak)}` : 'ابدأ سلسلتك اليوم'}</div><div className="xs muted">أتمّ أذكار الصباح أو المساء كل يوم</div></div></div>
-      </div>
-
-      <a href="#/quiz" className="quiz-banner" aria-label="مسابقة فاستبقوا الخيرات">
-        <span className="qb-glow" aria-hidden="true" />
-        <Trophy size={34} strokeWidth={1.5} aria-hidden="true" />
-        <span className="col" style={{ gap: 2, flex: 1 }}>
-          <span className="xs" style={{ opacity: .8 }}>مسابقة دينية بمراحل وشهادة</span>
-          <b className="ruqaa" style={{ fontSize: 24 }}>فاستبقوا الخيرات</b>
-          <span className="xs" style={{ opacity: .8 }}>العب وحدك أو نافس صديقك</span>
-        </span>
-        <span className="qb-play" aria-hidden="true">العب</span>
-      </a>
-
-      <nav className="grid4" aria-label="الأقسام">
-        {TILES.map(({ to, label, Icon, soon }) => (
-          <a key={to} href={'#' + to} className="tile">
-            {soon && <span className="soon">قريبًا</span>}
-            <span className="ic"><Icon size={22} strokeWidth={1.7} aria-hidden="true" /></span>
-            <span className="l">{label}</span>
-          </a>
-        ))}
-      </nav>
+      <Tiles d={d} wirdTotal={wirdTotal} goal={goal} azDone={azDone} lastPage={quran.lastPage} surah={s.name} ch={ch} streak={streak} place={place} next={next} />
 
       <div className="card center">
         <div className="xs muted">آية اليوم</div>
@@ -194,5 +164,87 @@ export default function Home() {
 
       <Credit />
     </div>
+  );
+}
+
+function Continue({ suggest, sug, sugTotal, s, lastPage, ch }) {
+  const st = useStore((x) => x.stories);
+  const story = st.last && STORY[st.last];
+  const items = [
+    { href: '#/azkar/' + suggest, art: 'azkar', c: TILES.azkar.c, t: AZKAR[suggest].title, sub: sug?.done ? 'تمت اليوم ✓' : sug ? `وقفت عند ${ar(Math.min(sug.i + 1, sugTotal))} من ${ar(sugTotal)}` : `${ar(sugTotal)} ذكرًا` },
+    { href: '#/quran/' + lastPage, art: 'quran', c: TILES.quran.c, t: 'كمّل القراءة', sub: `${s.name} — ص ${ar(lastPage)}` },
+    story && { href: '#/story/' + story.id, art: 'stories', c: TILES.stories.c, t: story.title, sub: `سمعت ${ar(Math.round((st.pos[story.id] || 0) * 100))}٪` },
+    ch.c && ch.started && !ch.done && { href: '#/challenges', art: 'challenges', c: TILES.challenges.c, t: 'تحديك', sub: `${ar(Math.round(ch.pct * 100))}٪ — ${ch.c.badge}` },
+  ].filter(Boolean);
+  return (
+    <section className="col" style={{ gap: 8 }} aria-label="كمّل من حيث وقفت">
+      <div className="h2" style={{ fontSize: 15 }}>كمّل من حيث وقفت</div>
+      <div className="cont-strip">
+        {items.map((it, i) => (
+          <motion.a key={it.href} href={it.href} className="cont" style={{ '--g1': it.c[0], '--g2': it.c[1] }} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.06 }} whileTap={{ scale: .96 }}>
+            <span className="cont-art"><TileArt id={it.art} size={46} /></span>
+            <span className="col" style={{ minWidth: 0, gap: 1 }}><b className="small cont-t">{it.t}</b><span className="xs" style={{ opacity: .85 }}>{it.sub}</span></span>
+            <Play size={14} style={{ flex: 'none', opacity: .8 }} />
+          </motion.a>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function Tiles({ d, wirdTotal, goal, azDone, lastPage, surah, ch, streak, place, next }) {
+  const saved = useStore((x) => x.settings.tiles);
+  const setSetting = useStore((x) => x.setSetting);
+  const hifz = useStore((x) => x.hifz);
+  const best = useStore((x) => x.quiz.best);
+  const order = [...(saved || []).filter((k) => TILES[k]), ...TILE_ORDER.filter((k) => !(saved || []).includes(k))];
+  const [edit, setEdit] = useState(false);
+  const [pick, setPick] = useState(null);
+  const due = dueReviews(hifz, 99).length, mem = memorizedCount(hifz);
+  const prays = Object.keys(d.prayers || {}).length;
+  const status = {
+    azkar: azDone === 2 ? 'الصباح والمساء ✓' : azDone ? 'أذكار واحدة ✓' : 'ابدأ أذكارك',
+    quran: `${surah} — صفحة ${ar(lastPage)}`,
+    wird: `${arNum(wirdTotal)} من ${arNum(goal)}`,
+    hifz: due ? `${ar(due)} للمراجعة` : mem ? `${arNum(mem)} صفحة محفوظة` : 'ابدأ خطتك',
+    quiz: best ? `أعلى نتيجة ${arNum(best)} نقطة` : 'العب وحدك أو نافس صديقك',
+    challenges: ch.c ? (ch.started ? `${ar(Math.round(ch.pct * 100))}٪ من التحدي` : 'تحدٍّ جديد') : 'كل التحديات ✓',
+    report: streak ? `سلسلة ${daysAr(streak)}` : null,
+    qibla: `${ar(Math.round(qiblaBearing(place.lat, place.lng)))}°`,
+    prayer: `${ar(prays)} من ٥ مسجّلة`,
+  };
+  const tap = (k, e) => {
+    if (!edit) { sound.tap(); return; }
+    e.preventDefault();
+    if (!pick) { setPick(k); vibrate(10); return; }
+    if (pick !== k) { const o = [...order]; const a = o.indexOf(pick), b = o.indexOf(k); [o[a], o[b]] = [o[b], o[a]]; setSetting('tiles', o); vibrate([10, 30, 10]); sound.next(); }
+    setPick(null);
+  };
+  return (
+    <section className="col" style={{ gap: 10 }} aria-label="الأقسام">
+      <div className="between">
+        <div className="h2" style={{ fontSize: 15 }}>الأقسام</div>
+        <div className="row" style={{ gap: 6 }}>
+          {edit && <button className="link-btn" onClick={() => { setSetting('tiles', null); setPick(null); }}><RotateCcw size={13} style={{ verticalAlign: -2 }} /> الترتيب الأصلي</button>}
+          <button className="link-btn" onClick={() => { setEdit(!edit); setPick(null); }} aria-pressed={edit}>{edit ? <><Check size={14} style={{ verticalAlign: -2 }} /> تم</> : <><ArrowLeftRight size={13} style={{ verticalAlign: -2 }} /> ترتيب</>}</button>
+        </div>
+      </div>
+      {edit && <div className="xs muted">اضغط على قسم، ثم على القسم اللي عايز تبدّله مكانه</div>}
+      <motion.nav className={'bento' + (edit ? ' editing' : '')} layout>
+        {order.map((k, i) => { const t = TILES[k]; return (
+          <motion.a key={k} layout href={'#' + t.to} onClick={(e) => tap(k, e)} className={'btile' + (t.wide ? ' wide' : '') + (pick === k ? ' picked' : '')}
+            style={{ '--g1': t.c[0], '--g2': t.c[1] }} initial={{ opacity: 0, y: 24, scale: .96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ delay: Math.min(i, 8) * 0.045, type: 'spring', stiffness: 260, damping: 24 }} whileTap={{ scale: .95 }}>
+            <span className="bt-pat" aria-hidden="true" />
+            <span className="bt-shine" aria-hidden="true" />
+            <TileArt id={k} size={t.wide ? 112 : 84} className="bt-art" />
+            <span className="bt-text">
+              <b className="bt-title">{t.label}</b>
+              <span className="bt-sub">{t.sub}</span>
+            </span>
+            {status[k] && <span className="bt-chip">{status[k]}</span>}
+          </motion.a>
+        ); })}
+      </motion.nav>
+    </section>
   );
 }
