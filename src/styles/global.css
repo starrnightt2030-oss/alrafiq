@@ -377,3 +377,11 @@ input[type=range] { accent-color: var(--acc); }
 .as-acts { display: flex; gap: 6px; flex-wrap: wrap; }
 .as-acts button { display: inline-flex; align-items: center; gap: 5px; min-height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surf2); color: var(--text); font: inherit; font-size: 12px; }
 .as-acts button svg { color: var(--acc); }
+.sh-styles { display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 8px; scrollbar-width: none; }
+.sh-styles::-webkit-scrollbar { display: none; }
+.sh-st { flex: none; width: 74px; display: flex; flex-direction: column; align-items: center; gap: 5px; border: 0; background: none; color: var(--muted); font: inherit; padding: 0; }
+.sh-thumb { width: 64px; height: 80px; border-radius: 14px; display: grid; place-items: center; border: 2px solid transparent; box-shadow: 0 6px 14px -8px #000; }
+.sh-thumb i { width: 22px; height: 22px; border-radius: 50%; box-shadow: 0 0 0 3px rgba(255,255,255,.35); }
+.sh-st.on .sh-thumb { border-color: var(--acc); box-shadow: 0 0 0 3px color-mix(in srgb, var(--acc) 30%, transparent); }
+.sh-st.on { color: var(--acc); font-weight: 700; }
+.sh-nm { font-size: 10.5px; text-align: center; line-height: 1.3; }

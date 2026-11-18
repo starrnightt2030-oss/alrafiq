@@ -7,7 +7,9 @@ import { toast } from './ui.jsx';
 import { SURAHS } from '../lib/quran.js';
 import { ar } from '../lib/arabic.js';
 import { start as reciteStart, nextKey, prevKey } from '../lib/recite.js';
-import { drawAyahCard, SIZES, STYLES } from '../lib/ayahCard.js';
+import { drawAyahCard, SIZES, STYLES, ART } from '../lib/ayahCard.js';
+import { ImagePlus } from 'lucide-react';
+const ALL = { ...Object.fromEntries(Object.entries(ART).map(([k, v]) => [k, { name: v.name, sw: v.sw, art: v }])), ...Object.fromEntries(Object.entries(STYLES).map(([k, v]) => [k, { name: v.name, sw: [v.bg[0], v.bg[1]], acc: v.accent }])) };
 import { shareImage } from '../lib/shareImage.js';
 import { useStore } from '../store.js';
 import { vibrate } from '../lib/haptics.js';
@@ -62,20 +64,25 @@ export function TafsirSheet({ k: k0, getAyah, onShare, onClose, onListen }) {
 export function ShareSheet({ k, getAyah, tafsir: tf0, onClose }) {
   const saved = useStore((s) => s.settings.share);
   const setSetting = useStore((s) => s.setSetting);
-  const opt = { style: 'mihrab', size: 'post', ...(saved || {}) }; if (!STYLES[opt.style]) opt.style = 'mihrab';
-  const set = (p) => setSetting('share', { ...opt, ...p });
+  const opt0 = { style: 'mihrab', size: 'post', ...(saved || {}) }; if (!ALL[opt0.style] || opt0.style === 'photo') opt0.style = 'mihrab';
+  const set = (p) => { if (p.style) setPhotoStyle(false); setSetting('share', { ...opt0, ...p }); };
+  const [photo, setPhoto] = useState(null); const [photoStyle, setPhotoStyle] = useState(false);
+  const fileRef = useRef(null);
+  const [tdata, setTdata] = useState(null);
   const [count, setCount] = useState(1);
+  const opt = { ...opt0, style: photoStyle ? 'photo' : opt0.style };
+  const needT = ALL[opt.style]?.art?.needsTafsir;
   const [withTafsir, setWithTafsir] = useState(false);
   const [tafsir, setTafsir] = useState(tf0 || '');
   const [img, setImg] = useState(null); const [busy, setBusy] = useState(false);
   const cv = useRef(null);
   const ayahs = []; { let c = k; for (let i = 0; i < count && c && c.s === k.s; i++) { const a = getAyah(c); if (a) ayahs.push(a); c = nextKey(c); } }
-  useEffect(() => { if (withTafsir && !tafsir) loadTafsir(k.s).then((d) => setTafsir(d.a?.[k.a]?.[0] || '')).catch(() => {}); }, [withTafsir]);
+  useEffect(() => { if ((withTafsir || needT) && !tdata) loadTafsir(k.s).then((d) => { setTdata(d); if (!tafsir) setTafsir(d.a?.[k.a]?.[0] || ''); }).catch(() => {}); }, [withTafsir, needT]);
   useEffect(() => {
     let on = true; setImg(null);
-    const t = setTimeout(() => drawAyahCard({ ayahs, style: opt.style, size: opt.size, tafsir: withTafsir && count === 1 ? tafsir : '' }).then((c) => { if (!on) return; cv.current = c; setImg(c.toDataURL('image/jpeg', .85)); }), 120);
+    const t = setTimeout(() => drawAyahCard({ ayahs, style: opt.style, size: opt.size, tafsir: withTafsir && count === 1 ? tafsir : '', tafsirFor: (a) => tdata?.a?.[a.a]?.[0] || '', photo }).then((c) => { if (!on) return; cv.current = c; setImg(c.toDataURL('image/jpeg', .85)); }), 120);
     return () => { on = false; clearTimeout(t); };
-  }, [opt.style, opt.size, count, withTafsir, tafsir]); // eslint-disable-line
+  }, [opt.style, opt.size, count, withTafsir, tafsir, tdata, photo]); // eslint-disable-line
   const share = async () => {
     if (!cv.current) return; setBusy(true);
     try { const r = await shareImage(cv.current, `آية-${plain(SURAHS[k.s - 1].name)}-${k.a}`, 'من تطبيق الرفيق — رفيقك في ذكر الله'); if (r === 'downloaded') toast('اتحفظت الصورة في التنزيلات'); }
@@ -90,9 +97,14 @@ export function ShareSheet({ k, getAyah, tafsir: tf0, onClose }) {
         <div className="sh-prev" style={{ aspectRatio: `${W} / ${H}` }}>
           {img ? <motion.img key={img.length} src={img} alt="معاينة الصورة" initial={{ opacity: .4 }} animate={{ opacity: 1 }} /> : <div className="center muted"><Loader2 className="spin" /></div>}
         </div>
-        <div className="row" style={{ gap: 10, justifyContent: 'center' }} role="radiogroup" aria-label="التصميم">
-          {Object.entries(STYLES).map(([id, s]) => <button key={id} role="radio" aria-checked={opt.style === id} aria-label={s.name} className={'sh-sw' + (opt.style === id ? ' on' : '')} style={{ background: `linear-gradient(135deg, ${s.bg[0]}, ${s.bg[1]})`, '--a': s.accent }} onClick={() => set({ style: id })}><i /></button>)}
+        <div className="sh-styles" role="radiogroup" aria-label="التصميم">
+          {Object.entries(ALL).map(([id, s]) => { const on = opt.style === id; return (
+            <button key={id} role="radio" aria-checked={on} className={'sh-st' + (on ? ' on' : '')} onClick={() => { if (id === 'photo') { fileRef.current?.click(); return; } set({ style: id }); vibrate(6); }}>
+              <span className="sh-thumb" style={{ background: `linear-gradient(135deg, ${s.sw[0]}, ${s.sw[1]})` }}>{id === 'photo' ? <ImagePlus size={20} color="#fff" /> : <i style={{ background: s.acc || s.art?.accent }} />}</span>
+              <span className="sh-nm">{s.name}</span>
+            </button>); })}
         </div>
+        <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (!f) return; const img = new Image(); img.onload = () => { setPhoto(img); setPhotoStyle(true); }; img.src = URL.createObjectURL(f); }} />
         <div className="rc-seg">{Object.entries(SIZES).map(([id, s]) => <button key={id} className={opt.size === id ? 'on' : ''} onClick={() => set({ size: id })}>{s[2]}</button>)}</div>
         <div className="between">
           <span className="small">عدد الآيات</span>
@@ -102,7 +114,7 @@ export function ShareSheet({ k, getAyah, tafsir: tf0, onClose }) {
             <button className="icon-btn" style={{ width: 36, height: 36 }} aria-label="آية أكتر" onClick={() => setCount(Math.min(6, count + 1))}><Plus size={16} /></button>
           </div>
         </div>
-        {count === 1 && <label className="between small"><span>أضف التفسير الميسّر تحت الآية</span><input type="checkbox" checked={withTafsir} onChange={(e) => setWithTafsir(e.target.checked)} style={{ width: 22, height: 22, accentColor: 'var(--acc)' }} /></label>}
+        {count === 1 && !needT && !ALL[opt.style]?.art && <label className="between small"><span>أضف التفسير الميسّر تحت الآية</span><input type="checkbox" checked={withTafsir} onChange={(e) => setWithTafsir(e.target.checked)} style={{ width: 22, height: 22, accentColor: 'var(--acc)' }} /></label>}
         <motion.button whileTap={{ scale: .97 }} className="btn q-go" onClick={share} disabled={!img || busy}>{busy ? <Loader2 size={18} className="spin" /> : <Share2 size={18} />} حفظ ومشاركة</motion.button>
       </div>
     </Sheet>

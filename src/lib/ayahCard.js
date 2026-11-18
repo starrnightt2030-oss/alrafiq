@@ -4,6 +4,8 @@ import logoUrl from '../assets/logo.webp';
 import { SURAHS } from './quran.js';
 import { ar } from './arabic.js';
 import { SITE } from './update.js';
+import { ART } from './ayahArt.js';
+export { ART };
 
 export const SIZES = { post: [1080, 1350, 'منشور'], story: [1080, 1920, 'ستوري'], square: [1080, 1080, 'مربع'] };
 export const STYLES = {
@@ -81,9 +83,19 @@ function mosque(ctx, x, w, base, c) {
   ctx.restore();
 }
 
-export async function drawAyahCard({ ayahs, style = 'mihrab', size = 'post', tafsir = '' }) {
-  const S = STYLES[style] || STYLES.mihrab; const [W, H] = SIZES[size] || SIZES.post;
+export async function drawAyahCard({ ayahs, style = 'mihrab', size = 'post', tafsir = '', tafsirFor, photo }) {
   await Promise.all(['400 60px "KFGQPC Hafs"', '700 40px "Amiri"', '400 30px "Amiri"', '600 28px "Readex Pro"', '400 24px "Readex Pro"'].map((f) => document.fonts?.load(f).catch(() => {})));
+  if (ART[style]) {
+    const A = ART[style]; const [W, H] = SIZES[size] || SIZES.post; const FOOT = 236;
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    const ctx = cv.getContext('2d'); ctx.direction = 'rtl'; ctx.textAlign = 'center';
+    A.draw(ctx, W, H, H - FOOT + 20, ayahs, { tafsirFor, photo });
+    ctx.filter = 'none'; ctx.shadowBlur = 0; ctx.textAlign = 'center';
+    const S = { text: A.light ? '#1B1B1B' : '#FFFFFF', soft: A.light ? '#555' : 'rgba(255,255,255,.75)', accent: A.accent };
+    await drawFooter(ctx, S, W, H, 44, FOOT, A.light, A.accent, style);
+    return cv;
+  }
+  const S = STYLES[style] || STYLES.mihrab; const [W, H] = SIZES[size] || SIZES.post;
   const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
   const ctx = cv.getContext('2d'); ctx.direction = 'rtl'; ctx.textAlign = 'center';
   const R = rnd(7); const light = !!S.paper || style === 'minimal';
@@ -170,7 +182,12 @@ export async function drawAyahCard({ ayahs, style = 'mihrab', size = 'post', taf
     tl.forEach((l, i) => ctx.fillText(l, W / 2, ty + 94 + i * 48)); ctx.globalAlpha = 1;
   }
 
-  // ٦) التذييل: لوحة بهوية التطبيق والمطوّر ورمز QR
+  await drawFooter(ctx, S, W, H, M, FOOT, light, accentFill, style);
+  return cv;
+}
+
+// التذييل المشترك: لوحة بهوية التطبيق والمطوّر ورمز QR
+async function drawFooter(ctx, S, W, H, M, FOOT, light, accentFill, style) {
   const by = H - FOOT + 44, bh = FOOT - 72, bx = M, bw = W - 2 * M;
   ctx.fillStyle = light ? 'rgba(255,255,255,.55)' : 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 30); ctx.fill();
   ctx.strokeStyle = accentFill; ctx.lineWidth = 2; ctx.stroke();
@@ -188,5 +205,4 @@ export async function drawAyahCard({ ayahs, style = 'mihrab', size = 'post', taf
   ctx.drawImage(qr, qx + (qw - qs) / 2, qy + 8, qs, qs);
   if (logo) { const c = 28; ctx.fillStyle = '#fff'; ctx.fillRect(qx + qw / 2 - c / 2 - 3, qy + 10 + qs / 2 - c / 2 - 3, c + 6, c + 6); ctx.drawImage(logo, qx + qw / 2 - c / 2, qy + 10 + qs / 2 - c / 2, c, c); }
   ctx.textAlign = 'center'; ctx.fillStyle = '#10241E'; ctx.font = '600 16px "Readex Pro"'; ctx.fillText('امسح وحمّل التطبيق', qx + qw / 2, qy + qh - 9);
-  return cv;
 }
