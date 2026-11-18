@@ -19,6 +19,8 @@ import Inbox from './screens/Inbox.jsx';
 import Quiz from './screens/Quiz.jsx';
 import Qibla from './screens/Qibla.jsx';
 import Fasting from './screens/Fasting.jsx';
+import Rufaqa from './screens/Rufaqa.jsx';
+import { startRufaqaSync } from './lib/rufaqa.js';
 import Home from './screens/Home.jsx';
 import AzkarIndex from './screens/AzkarIndex.jsx';
 import AzkarReader from './screens/AzkarReader.jsx';
@@ -52,6 +54,7 @@ function Screen({ route }) {
     case 'quiz': return <Quiz />;
     case 'qibla': return <Qibla />;
     case 'fasting': return <Fasting />;
+    case 'rufaqa': return <Rufaqa key={route.join('/')} sub={b} arg={route[2]} />;
     case 'stories': return b ? <StoryList col={b} /> : <StoriesHome />;
     case 'story': return <StoryReader key={b} id={b} />;
     case 'wird': return <Wird />;
@@ -64,7 +67,7 @@ function Screen({ route }) {
   }
 }
 
-const FULL = (r) => (r[0] === 'azkar' && r[1]) || ['hisn', 'wird', 'ruqyah', 'duas', 'report', 'challenges', 'stories', 'story', 'hifz', 'inbox', 'quiz', 'qibla', 'fasting'].includes(r[0]) || (r[0] === 'quran' && r[1]);
+const FULL = (r) => (r[0] === 'azkar' && r[1]) || ['hisn', 'wird', 'ruqyah', 'duas', 'report', 'challenges', 'stories', 'story', 'hifz', 'inbox', 'quiz', 'qibla', 'fasting', 'rufaqa'].includes(r[0]) || (r[0] === 'quran' && r[1]);
 
 export default function App() {
   const theme = useStore((s) => s.settings.theme);
@@ -78,9 +81,10 @@ export default function App() {
     scheduleReminders();
     const stopCompanion = startCompanion();
     const stopNative = setupNative();
+    const stopRufaqa = startRufaqaSync();
     const unlock = () => { sound.unlock(); removeEventListener('pointerdown', unlock); };
     addEventListener('pointerdown', unlock);
-    return () => { removeEventListener('pointerdown', unlock); stopCompanion(); stopNative(); };
+    return () => { removeEventListener('pointerdown', unlock); stopCompanion(); stopNative(); stopRufaqa(); };
   }, []);
 
   const [adhan, setAdhan] = useState(null);

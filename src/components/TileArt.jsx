@@ -111,6 +111,14 @@ const ART = {
     <path d="M60 30l3.5 7 7.5 1-5.5 5 1.4 7.5L60 47l-6.9 3.5 1.4-7.5-5.5-5 7.5-1z" fill="#fff" />
     <Spark x={18} y={70} s={6} f="#fff" /><Spark x={104} y={66} s={5} f="#FFF0BE" /><Spark x={100} y={12} s={4} f="#fff" />
   </>),
+  rufaqa: (p) => (<>
+    <circle cx="60" cy="56" r="48" fill={`url(#${p}r)`} />
+    <path d="M60 26c-6-10-24-8-24 6 0 10 14 18 24 26 10-8 24-16 24-26 0-14-18-16-24-6z" fill={`url(#${p}g)`} />
+    <circle cx="34" cy="66" r="11" fill="#fff" opacity=".88" /><path d="M14 104c0-14 9-24 20-24s20 10 20 24z" fill="#fff" opacity=".88" />
+    <circle cx="86" cy="66" r="11" fill="#fff" opacity=".88" /><path d="M66 104c0-14 9-24 20-24s20 10 20 24z" fill="#fff" opacity=".88" />
+    <circle cx="60" cy="74" r="13" fill={`url(#${p}w)`} /><path d="M36 112c0-16 10-27 24-27s24 11 24 27z" fill={`url(#${p}w)`} />
+    <Spark x={98} y={22} s={6} f="#fff" /><Spark x={20} y={28} s={5} f="#FFF0BE" /><Spark x={60} y={8} s={3.5} f="#fff" />
+  </>),
   fasting: (p) => (<>
     <circle cx="60" cy="52" r="46" fill={`url(#${p}r)`} />
     <path d="M70 12a30 30 0 1 0 0 56a24 24 0 1 1 0-56z" fill={`url(#${p}g)`} />

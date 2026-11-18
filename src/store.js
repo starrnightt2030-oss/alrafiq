@@ -43,6 +43,10 @@ export const useStore = create(
       quiz: { seen: {}, history: [], best: 0, names: [], current: null },
       backupAt: null,
       fasts: {},
+      rufaqa: { name: '', hue: 0, groups: [] },
+      setRufaqa: (p) => set((s) => ({ rufaqa: { ...s.rufaqa, ...p } })),
+      addRufaqaGroup: (gid) => set((s) => ({ rufaqa: { ...s.rufaqa, groups: [...new Set([...(s.rufaqa.groups || []), gid])] } })),
+      removeRufaqaGroup: (gid) => set((s) => ({ rufaqa: { ...s.rufaqa, groups: (s.rufaqa.groups || []).filter((g) => g !== gid) } })),
       // الصيام: تسجيل يوم الصيام (k = نوعه) وتبديله
       toggleFast: (key, k) => set((s) => { const f = { ...s.fasts }; const had = !!f[key]; if (had) delete f[key]; else f[key] = k || 'nafl'; return { fasts: f, points: s.points + (had ? -20 : 20) }; }),
       markBackup: () => set({ backupAt: Date.now() }),
@@ -139,6 +143,7 @@ export const useStore = create(
         challenge: { ...current.challenge, ...(persisted?.challenge || {}) },
         quiz: { ...current.quiz, ...(persisted?.quiz || {}) },
         fasts: { ...(persisted?.fasts || {}) },
+        rufaqa: { ...current.rufaqa, ...(persisted?.rufaqa || {}) },
       }),
       migrate: (state) => state,
     }
