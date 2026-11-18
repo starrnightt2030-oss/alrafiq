@@ -4,4 +4,10 @@
     <string name="title_activity_main">الرفيق</string>
     <string name="package_name">com.eldawly.alrafiq</string>
     <string name="custom_url_scheme">com.eldawly.alrafiq</string>
+    <string name="wg_prayer_desc">مواقيت الصلاة والعدّاد وحالة الأذكار</string>
+    <string name="wg_next_desc">الصلاة القادمة والعدّاد</string>
+    <string name="wg_tasbih_desc">سبّح من الشاشة الرئيسية ويتحسب في وردك</string>
+    <string name="wg_prayer_label">الرفيق — مواقيت الصلاة</string>
+    <string name="wg_next_label">الرفيق — الصلاة القادمة</string>
+    <string name="wg_tasbih_label">الرفيق — المسبحة</string>
 </resources>

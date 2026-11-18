@@ -12,8 +12,8 @@ import { TopBar, toast } from '../components/ui.jsx';
 const R = 128;
 const EMPTY = {};
 
-export default function Wird() {
-  const [k, setK] = useState(0);
+export default function Wird({ id }) {
+  const [k, setK] = useState(() => Math.max(0, WIRD.findIndex((w) => w.id === id)));
   const [armed, setArmed] = useState(null);
   const [hand, setHand] = useState(false);
   const counts = useStore((s) => s.days[todayKey()]?.wird) || EMPTY;

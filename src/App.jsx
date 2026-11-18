@@ -20,7 +20,9 @@ import Quiz from './screens/Quiz.jsx';
 import Qibla from './screens/Qibla.jsx';
 import Fasting from './screens/Fasting.jsx';
 import Rufaqa from './screens/Rufaqa.jsx';
+import Badges from './screens/Badges.jsx';
 import { startRufaqaSync } from './lib/rufaqa.js';
+import { startWidgetSync, handleWidgetLinks } from './lib/widget.js';
 import Home from './screens/Home.jsx';
 import AzkarIndex from './screens/AzkarIndex.jsx';
 import AzkarReader from './screens/AzkarReader.jsx';
@@ -54,10 +56,11 @@ function Screen({ route }) {
     case 'quiz': return <Quiz />;
     case 'qibla': return <Qibla />;
     case 'fasting': return <Fasting />;
+    case 'badges': return <Badges />;
     case 'rufaqa': return <Rufaqa key={route.join('/')} sub={b} arg={route[2]} />;
     case 'stories': return b ? <StoryList col={b} /> : <StoriesHome />;
     case 'story': return <StoryReader key={b} id={b} />;
-    case 'wird': return <Wird />;
+    case 'wird': return <Wird key={b || 'w'} id={b} />;
     case 'quran': return b ? <MushafReader key={'m' + (route[2] || '')} page={+b} mode={route[2]} /> : <QuranIndex />;
     case 'hifz': return <Hifz />;
     case 'prayer': return <Prayer />;
@@ -67,7 +70,7 @@ function Screen({ route }) {
   }
 }
 
-const FULL = (r) => (r[0] === 'azkar' && r[1]) || ['hisn', 'wird', 'ruqyah', 'duas', 'report', 'challenges', 'stories', 'story', 'hifz', 'inbox', 'quiz', 'qibla', 'fasting', 'rufaqa'].includes(r[0]) || (r[0] === 'quran' && r[1]);
+const FULL = (r) => (r[0] === 'azkar' && r[1]) || ['hisn', 'wird', 'ruqyah', 'duas', 'report', 'challenges', 'stories', 'story', 'hifz', 'inbox', 'quiz', 'qibla', 'fasting', 'rufaqa', 'badges'].includes(r[0]) || (r[0] === 'quran' && r[1]);
 
 export default function App() {
   const theme = useStore((s) => s.settings.theme);
@@ -82,9 +85,10 @@ export default function App() {
     const stopCompanion = startCompanion();
     const stopNative = setupNative();
     const stopRufaqa = startRufaqaSync();
+    const stopWidget = startWidgetSync(); handleWidgetLinks();
     const unlock = () => { sound.unlock(); removeEventListener('pointerdown', unlock); };
     addEventListener('pointerdown', unlock);
-    return () => { removeEventListener('pointerdown', unlock); stopCompanion(); stopNative(); stopRufaqa(); };
+    return () => { removeEventListener('pointerdown', unlock); stopCompanion(); stopNative(); stopRufaqa(); stopWidget(); };
   }, []);
 
   const [adhan, setAdhan] = useState(null);

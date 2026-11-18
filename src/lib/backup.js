@@ -4,7 +4,7 @@ import { APP } from '../config.js';
 import { isNative } from './native.js';
 import { todayKey } from './arabic.js';
 
-const KEYS = ['settings', 'days', 'points', 'quran', 'favDuas', 'firstDay', 'challenge', 'stories', 'hifz', 'inbox', 'sent', 'quiz', 'fasts', 'backupAt', 'rufaqa'];
+const KEYS = ['settings', 'days', 'points', 'quran', 'favDuas', 'firstDay', 'challenge', 'stories', 'hifz', 'inbox', 'sent', 'quiz', 'fasts', 'backupAt', 'rufaqa', 'dailyQ'];
 
 export function snapshot() {
   const s = useStore.getState();

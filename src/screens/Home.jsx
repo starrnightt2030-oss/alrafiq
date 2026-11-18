@@ -15,6 +15,7 @@ import { useChallengeWatcher } from './Challenges.jsx';
 import { vibrate } from '../lib/haptics.js';
 import TileArt from '../components/TileArt.jsx';
 import { hijriParts, sunnahOf, ramadanDays } from '../lib/fasting.js';
+import { earnedCount } from '../lib/badges.js';
 import { dueReviews, memorizedCount } from '../lib/hifz.js';
 import { STORY } from '../data/stories/index.js';
 import { qiblaBearing } from '../lib/qibla.js';
@@ -36,10 +37,11 @@ export const TILES = {
   report: { to: '/report', label: 'تقييمي', sub: 'أسبوعي وشهري', c: ['#5B6BE0', '#2C2F86'] },
   qibla: { to: '/qibla', label: 'القبلة', sub: 'بوصلة حيّة', c: ['#4A4A52', '#16161C'] },
   prayer: { to: '/prayer', label: 'مواقيت الصلاة', sub: 'وسجلّ صلواتك', c: ['#2A9D8F', '#145A52'] },
+  badges: { to: '/badges', label: 'أوسمتي', sub: 'الإنجازات والدرجات', c: ['#C98E1E', '#6B3F05'] },
   rufaqa: { to: '/rufaqa', label: 'رفقاء الخير', sub: 'مجموعات العيلة والأصحاب', c: ['#E0507A', '#7A1E46'], wide: true },
   fasting: { to: '/fasting', label: 'الصيام ورمضان', sub: 'السنن والإمساكية والختمة', c: ['#7A3FB0', '#3A1460'] },
 };
-export const TILE_ORDER = ['azkar', 'quran', 'wird', 'hifz', 'quiz', 'stories', 'rufaqa', 'duas', 'ruqyah', 'challenges', 'report', 'qibla', 'prayer', 'fasting'];
+export const TILE_ORDER = ['azkar', 'quran', 'wird', 'hifz', 'quiz', 'stories', 'rufaqa', 'duas', 'ruqyah', 'challenges', 'report', 'qibla', 'prayer', 'fasting', 'badges'];
 
 const surahOfPage = (p) => { let s = quranMeta.surahs[0]; for (const x of quranMeta.surahs) { if (x.page <= p) s = x; else break; } return s; };
 
@@ -223,6 +225,7 @@ function Tiles({ d, wirdTotal, goal, azDone, lastPage, surah, ch, streak, place,
     qibla: `${ar(Math.round(qiblaBearing(place.lat, place.lng)))}°`,
     prayer: `${ar(prays)} من ٥ مسجّلة`,
     fasting: fastStatus(),
+    badges: `${arNum(earnedCount(useStore.getState()))} وسام مكتسب`,
     rufaqa: rq?.groups?.length ? `${ar(rq.groups.length)} ${rq.groups.length > 1 ? 'مجموعات' : 'مجموعة'} — شوف رفقاءك` : 'اعمل مجموعة وادعُ أهلك',
   };
   const tap = (k, e) => {

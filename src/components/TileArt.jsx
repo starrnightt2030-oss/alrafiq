@@ -111,6 +111,15 @@ const ART = {
     <path d="M60 30l3.5 7 7.5 1-5.5 5 1.4 7.5L60 47l-6.9 3.5 1.4-7.5-5.5-5 7.5-1z" fill="#fff" />
     <Spark x={18} y={70} s={6} f="#fff" /><Spark x={104} y={66} s={5} f="#FFF0BE" /><Spark x={100} y={12} s={4} f="#fff" />
   </>),
+  badges: (p) => (<>
+    <circle cx="60" cy="58" r="48" fill={`url(#${p}r)`} />
+    <path d="M40 6h16l10 32H50z" fill="#fff" opacity=".85" /><path d="M80 6H64L54 38h16z" fill="#fff" opacity=".7" />
+    <circle cx="60" cy="72" r="34" fill={`url(#${p}g)`} />
+    {[...Array(12)].map((_, i) => { const a = (i / 12) * P * 2; return <circle key={i} cx={60 + Math.cos(a) * 34} cy={72 + Math.sin(a) * 34} r="3.4" fill={`url(#${p}g)`} />; })}
+    <circle cx="60" cy="72" r="26" fill="none" stroke="#fff" strokeOpacity=".7" strokeWidth="1.6" strokeDasharray="3 3" />
+    <path d="M60 56l5 10 11 1.6-8 7.8 2 11L60 81l-10 5.4 2-11-8-7.8 11-1.6z" fill="#fff" />
+    <Spark x={100} y={30} s={6} f="#fff" /><Spark x={18} y={52} s={5} f="#FFF0BE" />
+  </>),
   rufaqa: (p) => (<>
     <circle cx="60" cy="56" r="48" fill={`url(#${p}r)`} />
     <path d="M60 26c-6-10-24-8-24 6 0 10 14 18 24 26 10-8 24-16 24-26 0-14-18-16-24-6z" fill={`url(#${p}g)`} />

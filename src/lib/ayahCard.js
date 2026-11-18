@@ -206,3 +206,4 @@ async function drawFooter(ctx, S, W, H, M, FOOT, light, accentFill, style) {
   if (logo) { const c = 28; ctx.fillStyle = '#fff'; ctx.fillRect(qx + qw / 2 - c / 2 - 3, qy + 10 + qs / 2 - c / 2 - 3, c + 6, c + 6); ctx.drawImage(logo, qx + qw / 2 - c / 2, qy + 10 + qs / 2 - c / 2, c, c); }
   ctx.textAlign = 'center'; ctx.fillStyle = '#10241E'; ctx.font = '600 16px "Readex Pro"'; ctx.fillText('امسح وحمّل التطبيق', qx + qw / 2, qy + qh - 9);
 }
+export { drawFooter };

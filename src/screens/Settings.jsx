@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Volume2, Vibrate, Bell, Sparkles, RefreshCw, Download, CheckCircle2, Palette, Target } from 'lucide-react';
+import { Volume2, Vibrate, Bell, Sparkles, RefreshCw, Download, CheckCircle2, Palette, Target, BookOpen } from 'lucide-react';
 import { useStore } from '../store.js';
 import { THEMES, THEME_ORDER } from '../themes.js';
 import { APP } from '../config.js';
@@ -67,6 +67,7 @@ export default function Settings() {
             <button className="btn soft" style={{ minHeight: 38, padding: '0 12px', fontSize: 12 }} onClick={() => sound.milestone()}>تجربة</button>
           </div>
         )}
+        {st.sound && <div className="set-row"><span className="row"><BookOpen size={18} className="accent" aria-hidden="true" />صوت تقليب صفحات المصحف</span><Switch label="صوت تقليب الصفحات" checked={st.pageSound !== false} onChange={(v) => { setSetting('pageSound', v); if (v) setTimeout(() => sound.page(), 50); }} /></div>}
         <div className="set-row"><span className="row"><Vibrate size={18} className="accent" aria-hidden="true" />الاهتزاز مع العدّ</span><Switch label="الاهتزاز" checked={st.haptics} onChange={(v) => setSetting('haptics', v)} /></div>
         <div className="set-row"><span className="row"><Sparkles size={18} className="accent" aria-hidden="true" />المقدمة المتحركة عند الفتح</span><Switch label="المقدمة المتحركة" checked={st.intro} onChange={(v) => setSetting('intro', v)} /></div>
       </section>

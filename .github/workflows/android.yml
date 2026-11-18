@@ -39,8 +39,16 @@ jobs:
           VERSION_CODE: ${{ steps.v.outputs.code }}
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon
+          set -o pipefail
+          ./gradlew assembleRelease --no-daemon 2>&1 | tee ../build.log
           cp app/build/outputs/apk/release/app-release.apk ../alrafiq.apk
+      - name: Report build failure
+        if: failure()
+        run: |
+          tail -200 build.log > /tmp/fail.log || echo "no log" > /tmp/fail.log
+          git config user.name ci && git config user.email ci@example.com
+          git checkout --orphan ci-fail && git rm -rqf --cached . && cp /tmp/fail.log build-fail.log && git add -f build-fail.log && git commit -qm "build failure log"
+          git push -qf origin HEAD:refs/heads/ci-log/${{ steps.v.outputs.version }}
       - uses: actions/upload-artifact@v4
         with:
           name: alrafiq-apk

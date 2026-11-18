@@ -28,15 +28,51 @@ export function fb() {
 
 // نقاط الأسبوع: أذكار، ورد، صفحات، صلوات، صيام — تُحسب من بيانات الجهاز
 export function weekKey(d = new Date()) { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 1) % 7)); return todayKey(x); } // الأسبوع يبدأ السبت
+const dayStats = (s, k) => {
+  const d = s.days[k]; const q = s.dailyQ?.[k] || [];
+  const qc = q.filter((x) => x?.ok).length;
+  if (!d) return { score: qc * 10 + (s.fasts?.[k] ? 30 : 0), dh: 0, pg: 0, pr: 0, qc };
+  const az = ['morning', 'evening'].filter((x) => d.azkar?.[x]?.done).length;
+  const dh = Object.values(d.wird || {}).reduce((a, b) => a + b, 0);
+  const pg = (d.pages || []).length, pr = Object.keys(d.prayers || {}).length;
+  return { score: az * 20 + Math.floor(dh / 10) + pg * 5 + pr * 10 + (s.fasts?.[k] ? 30 : 0) + qc * 10, dh, pg, pr, qc };
+};
 export function summary(s = useStore.getState()) {
   const t = todayKey(); const day = s.days[t] || { azkar: {}, wird: {} };
-  const score = (k, d) => { if (!d) return 0; const az = ['morning', 'evening'].filter((x) => d.azkar?.[x]?.done).length; const w = Object.values(d.wird || {}).reduce((a, b) => a + b, 0); return az * 20 + Math.floor(w / 10) + (d.pages || []).length * 5 + Object.keys(d.prayers || {}).length * 10 + (s.fasts?.[k] ? 30 : 0); };
-  const wk = weekKey(); let week = 0; for (let i = 0; i < 7; i++) { const x = new Date(); x.setDate(x.getDate() - i); const k = todayKey(x); if (k < wk) break; week += score(k, s.days[k]); }
+  const wk = weekKey(); let week = 0, wkD = 0, wkP = 0, wkQ = 0;
+  for (let i = 0; i < 7; i++) { const x = new Date(); x.setDate(x.getDate() - i); const k = todayKey(x); if (k < wk) break; const st = dayStats(s, k); week += st.score; wkD += st.dh; wkP += st.pg; wkQ += st.qc; }
+  const td = dayStats(s, t); const w = {};
+  Object.entries(day.wird || {}).forEach(([id, n]) => { if (n > 0) w[id] = n; });
   return {
     date: t, azkar: ['morning', 'evening'].filter((x) => day.azkar?.[x]?.done).length,
-    wird: Object.values(day.wird || {}).reduce((a, b) => a + b, 0), pages: (day.pages || []).length,
-    prayers: Object.keys(day.prayers || {}).length, fasted: !!s.fasts?.[t], streak: streakOf(s.days), week, wk, today: score(t, day),
+    wird: td.dh, pages: td.pg, prayers: td.pr, fasted: !!s.fasts?.[t], streak: streakOf(s.days), week, wk, today: td.score,
+    wkD, wkP, wkQ, q: td.qc, qa: (s.dailyQ?.[t] || []).filter(Boolean).length, w,
   };
+}
+
+// ٣ أسئلة اليوم — نفس الأسئلة لكل الناس في نفس اليوم (اختيار ثابت من التاريخ)
+export async function dailyQuestions(date = todayKey()) {
+  const { POOL } = await import('./quiz.js');
+  let seed = [...date].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 2166136261);
+  const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+  const branches = Object.keys(POOL).filter((b) => POOL[b].length);
+  const picked = []; const used = new Set();
+  [1, 2, 3].forEach((d) => {
+    let b; do { b = branches[Math.floor(rnd() * branches.length)]; } while (used.has(b) && used.size < branches.length);
+    used.add(b);
+    const list = POOL[b].filter((q) => q.d === d && !q.verse); const pool = list.length ? list : POOL[b];
+    const q = pool[Math.floor(rnd() * pool.length)];
+    const opts = [q.c, ...q.w].map((o) => [rnd(), o]).sort((x, y) => x[0] - y[0]).map((x) => x[1]);
+    picked.push({ id: q.id, d, q: q.q, options: opts, answer: opts.indexOf(q.c), note: q.note, branch: b });
+  });
+  return picked;
+}
+
+// الذكر الجماعي اليومي: أهداف المجموعة لأنواع من الورد
+export const DEFAULT_DHIKR = [{ id: 'istighfar', goal: 1000 }, { id: 'salah', goal: 1000 }, { id: 'subhanbihamdih', goal: 500 }];
+export async function setGroupDhikr(gid, list) {
+  const { db, F } = await fb();
+  await F.updateDoc(F.doc(db, 'groups', gid), { dhikr: list });
 }
 
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -140,7 +176,7 @@ async function checkCheers() {
 export function startRufaqaSync() {
   const run = () => { const r = useStore.getState().rufaqa; if (!r?.groups?.length) return; checkCheers().catch(() => {}); const s = JSON.stringify(summary()); if (s === last) return; last = s; pushMe().catch(() => { last = ''; }); };
   setTimeout(run, 5000);
-  const unsub = useStore.subscribe((s, p) => { if (s.days !== p.days || s.fasts !== p.fasts) { clearTimeout(timer); timer = setTimeout(run, 15000); } });
+  const unsub = useStore.subscribe((s, p) => { if (s.days !== p.days || s.fasts !== p.fasts || s.dailyQ !== p.dailyQ) { clearTimeout(timer); timer = setTimeout(run, 15000); } });
   const vis = () => document.visibilityState === 'visible' && run();
   document.addEventListener('visibilitychange', vis);
   return () => { unsub(); document.removeEventListener('visibilitychange', vis); };

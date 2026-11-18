@@ -44,6 +44,13 @@ export const useStore = create(
       backupAt: null,
       fasts: {},
       rufaqa: { name: '', hue: 0, groups: [] },
+      dailyQ: {},
+      answerDaily: (date, i, choice, ok) => set((s) => {
+        const cur = [...(s.dailyQ?.[date] || [])]; if (cur[i]) return {};
+        cur[i] = { c: choice, ok };
+        const keep = Object.fromEntries(Object.entries(s.dailyQ || {}).filter(([k]) => k >= todayKey(new Date(Date.now() - 40 * 864e5))));
+        return { dailyQ: { ...keep, [date]: cur }, points: s.points + (ok ? 10 : 0) };
+      }),
       setRufaqa: (p) => set((s) => ({ rufaqa: { ...s.rufaqa, ...p } })),
       addRufaqaGroup: (gid) => set((s) => ({ rufaqa: { ...s.rufaqa, groups: [...new Set([...(s.rufaqa.groups || []), gid])] } })),
       removeRufaqaGroup: (gid) => set((s) => ({ rufaqa: { ...s.rufaqa, groups: (s.rufaqa.groups || []).filter((g) => g !== gid) } })),
@@ -144,6 +151,7 @@ export const useStore = create(
         quiz: { ...current.quiz, ...(persisted?.quiz || {}) },
         fasts: { ...(persisted?.fasts || {}) },
         rufaqa: { ...current.rufaqa, ...(persisted?.rufaqa || {}) },
+        dailyQ: { ...(persisted?.dailyQ || {}) },
       }),
       migrate: (state) => state,
     }

@@ -1,7 +1,7 @@
 // «رفقاء الخير»: مجموعات للأهل والأصحاب — لوحة الأعضاء، ترتيب الأسبوع، الختمة الجماعية، والتشجيع
 import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Plus, LogIn, Share2, Copy, RefreshCw, Crown, Flame, BookOpen, Heart, LogOut, Pencil, Check, Moon, Sun, ShieldCheck, ChevronLeft, Trophy, Send } from 'lucide-react';
+import { Sparkles, HelpCircle, Medal, X, Settings2, Users, Plus, LogIn, Share2, Copy, RefreshCw, Crown, Flame, BookOpen, Heart, LogOut, Pencil, Check, Moon, Sun, ShieldCheck, ChevronLeft, Trophy, Send } from 'lucide-react';
 import { useStore } from '../store.js';
 import { TopBar, Pattern, toast } from '../components/ui.jsx';
 import Sheet from '../components/Sheet.jsx';
@@ -10,7 +10,9 @@ import { ar, arNum, daysAr, todayKey } from '../lib/arabic.js';
 import { go } from '../router.js';
 import { vibrate } from '../lib/haptics.js';
 import { sound } from '../lib/sound.js';
-import { createGroup, joinGroup, leaveGroup, loadGroup, takePart, donePart, newKhatma, sendCheer, renameMe, pushMe, summary, weekKey, CHEERS, JoinError } from '../lib/rufaqa.js';
+import { createGroup, joinGroup, leaveGroup, loadGroup, takePart, donePart, newKhatma, sendCheer, renameMe, pushMe, summary, weekKey, CHEERS, JoinError, dailyQuestions, DEFAULT_DHIKR, setGroupDhikr } from '../lib/rufaqa.js';
+import { WIRD } from '../data/wird.js';
+import { LETTERS } from '../lib/quiz.js';
 
 const HUES = [150, 200, 265, 330, 25, 45];
 const SITE = 'https://starrnightt2030-oss.github.io/alrafiq/';
@@ -211,7 +213,7 @@ function Group({ gid }) {
 
   const { group: g, users, cheers, uid } = data;
   const wk = weekKey(); const tk = todayKey();
-  const rows = users.map((u) => { const s = u.s || {}; return { ...u, me: u.uid === uid, week: s.wk === wk ? s.week || 0 : 0, today: s.date === tk ? s : null, streak: s.streak || 0, seen: u.at }; })
+  const rows = users.map((u) => { const s = u.s || {}; const wv = s.wk === wk; return { ...u, me: u.uid === uid, wv, wkD: wv ? s.wkD || 0 : 0, wkP: wv ? s.wkP || 0 : 0, wkQ: wv ? s.wkQ || 0 : 0, week: wv ? s.week || 0 : 0, today: s.date === tk ? s : null, streak: s.streak || 0, seen: u.at }; })
     .sort((a, b) => b.week - a.week);
   const maxW = Math.max(1, ...rows.map((x) => x.week));
   const parts = g.khatma?.parts || {};
@@ -271,15 +273,15 @@ function Group({ gid }) {
       )}
 
       <div className="rq-tabs" role="tablist">
-        {[['board', 'لوحة الرفقاء', Trophy], ['khatma', 'الختمة الجماعية', BookOpen]].map(([k, l, I]) => (
+        {[['board', 'الرفقاء', Users], ['dhikr', 'الذكر الجماعي', Sparkles], ['quiz', 'أسئلة اليوم', HelpCircle], ['honor', 'لوحة الشرف', Trophy], ['khatma', 'الختمة', BookOpen]].map(([k, l, I]) => (
           <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}><I size={16} /> {l}</button>
         ))}
       </div>
 
       <AnimatePresence mode="wait">
-        {tab === 'board' ? (
+        {tab === 'board' && (
           <motion.section key="b" className="col" style={{ gap: 10 }} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-            <div className="xs muted">ترتيب الأسبوع (من {DAY[0]}) — النقاط: أذكار ٢٠، صفحة ٥، صلاة ١٠، صيام ٣٠، كل ١٠ تسبيحات ١</div>
+            <div className="xs muted">ترتيب الأسبوع (من {DAY[0]}) — النقاط: أذكار ٢٠، صفحة ٥، صلاة ١٠، صيام ٣٠، إجابة صحيحة ١٠، كل ١٠ تسبيحات ١</div>
             {rows.map((u, i) => (
               <motion.div key={u.uid} className={'rq-mem' + (u.me ? ' me' : '')} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * .04 }}>
                 <div className="row" style={{ gap: 10 }}>
@@ -305,7 +307,11 @@ function Group({ gid }) {
             ))}
             <button className="btn ghost" style={{ marginTop: 6, color: 'var(--danger, #D9534F)' }} onClick={leave}><LogOut size={16} /> اخرج من المجموعة</button>
           </motion.section>
-        ) : (
+        )}
+        {tab === 'dhikr' && <DhikrTab key="d" g={g} gid={gid} rows={rows} reload={load} />}
+        {tab === 'quiz' && <QuizTab key="q" rows={rows} reload={() => load(true)} />}
+        {tab === 'honor' && <HonorTab key="h" rows={rows} />}
+        {tab === 'khatma' && (
           <motion.section key="k" className="col" style={{ gap: 12 }} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
             <section className="card col" style={{ gap: 8 }}>
               <div className="between"><b className="h2">الختمة رقم {arNum(g.khatma?.n || 1)}</b><b className="accent">{arNum(doneN)} / ٣٠</b></div>
@@ -348,4 +354,170 @@ function ago(t) {
   if (m < 1) return 'دلوقتي'; if (m < 60) return `من ${ar(m)} د`;
   const h = Math.round(m / 60); if (h < 24) return `من ${ar(h)} س`;
   return `من ${daysAr(Math.round(h / 24))}`;
+}
+
+const pct = (a, b) => Math.min(100, b ? (a / b) * 100 : 0);
+const tabAnim = { initial: { opacity: 0, x: 20 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -20 } };
+
+// الذكر الجماعي اليومي: مجموع المجموعة لكل ذكر مقابل هدف مشترك
+function DhikrTab({ g, gid, rows, reload }) {
+  const list = (g.dhikr?.length ? g.dhikr : DEFAULT_DHIKR).filter((d) => WIRD.find((w) => w.id === d.id));
+  const [edit, setEdit] = useState(false);
+  return (
+    <motion.section className="col" style={{ gap: 12 }} {...tabAnim}>
+      <div className="between"><span className="xs muted" style={{ lineHeight: 1.8 }}>هدف المجموعة النهارده — كل تسبيحة منك بتتحسب للكل 💚</span>
+        <button className="link-btn" onClick={() => setEdit(true)}><Settings2 size={13} style={{ verticalAlign: -2 }} /> الأهداف</button></div>
+      {list.map((d, i) => {
+        const w = WIRD.find((x) => x.id === d.id);
+        const by = rows.map((u) => ({ ...u, n: u.today?.w?.[d.id] || 0 })).filter((u) => u.n > 0).sort((a, b) => b.n - a.n);
+        const total = by.reduce((a, u) => a + u.n, 0); const done = total >= d.goal;
+        return (
+          <motion.div key={d.id} className={'rq-dh' + (done ? ' done' : '')} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * .06 }}>
+            <div className="between" style={{ gap: 8 }}>
+              <b className="amiri" style={{ fontSize: 19, lineHeight: 1.6 }}>{w.short}</b>
+              {done ? <span className="rq-done-tag">✓ اكتمل الهدف</span> : <span className="xs muted">باقي {arNum(d.goal - total)}</span>}
+            </div>
+            <div className="rq-dh-bar"><i style={{ width: pct(total, d.goal) + '%' }} />
+              {by.length > 0 && <div className="rq-dh-seg">{by.map((u) => <span key={u.uid} style={{ width: pct(u.n, Math.max(d.goal, total)) + '%', '--h': u.hue ?? 150 }} title={u.name} />)}</div>}
+            </div>
+            <div className="between">
+              <b className="small"><span className="accent">{arNum(total)}</span> <span className="muted">/ {arNum(d.goal)}</span></b>
+              <div className="rq-stack">{by.slice(0, 5).map((u) => <Avatar key={u.uid} name={u.name} hue={u.hue} size={24} me={u.me} />)}</div>
+            </div>
+            {by.length > 0 && <div className="xs muted">{by.slice(0, 3).map((u) => `${u.me ? 'أنت' : u.name} ${arNum(u.n)}`).join(' · ')}</div>}
+            <button className="btn soft" style={{ minHeight: 40 }} onClick={() => go('/wird/' + d.id)}><Sparkles size={15} /> شارك بتسبيحك</button>
+          </motion.div>
+        );
+      })}
+      <AnimatePresence>{edit && <DhikrEdit list={list} onClose={() => setEdit(false)} onSave={async (l) => { setEdit(false); try { await setGroupDhikr(gid, l); toast('اتحدّثت أهداف المجموعة'); reload(); } catch (e) { toast(errMsg(e)); } }} />}</AnimatePresence>
+    </motion.section>
+  );
+}
+
+const GOALS = [100, 300, 500, 1000, 3000];
+function DhikrEdit({ list, onClose, onSave }) {
+  const [sel, setSel] = useState(list);
+  const has = (id) => sel.find((d) => d.id === id);
+  const toggle = (id) => setSel(has(id) ? sel.filter((d) => d.id !== id) : sel.length >= 4 ? sel : [...sel, { id, goal: 1000 }]);
+  return (
+    <Sheet onClose={onClose} label="أهداف الذكر الجماعي">
+      <div className="col" style={{ gap: 12, paddingBottom: 10 }}>
+        <b className="h2">أهداف الذكر الجماعي</b>
+        <span className="xs muted">اختار لحد ٤ أذكار، وحدّد هدف المجموعة لكل واحد في اليوم.</span>
+        <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>{WIRD.filter((w) => !w.long).map((w) => <button key={w.id} className={'chip' + (has(w.id) ? ' on' : '')} onClick={() => toggle(w.id)}>{w.short}</button>)}</div>
+        {sel.map((d) => (
+          <div key={d.id} className="col" style={{ gap: 6 }}>
+            <b className="small">{WIRD.find((w) => w.id === d.id)?.short}</b>
+            <div className="chips">{GOALS.map((n) => <button key={n} className={'chip' + (d.goal === n ? ' on' : '')} onClick={() => setSel(sel.map((x) => x.id === d.id ? { ...x, goal: n } : x))}>{arNum(n)}</button>)}</div>
+          </div>
+        ))}
+        <button className="btn q-go" disabled={!sel.length} onClick={() => onSave(sel)}>حفظ الأهداف</button>
+      </div>
+    </Sheet>
+  );
+}
+
+// ٣ أسئلة اليوم: نفس الأسئلة للكل، كل إجابة صح بـ١٠ نقاط في ترتيب الأسبوع
+function QuizTab({ rows, reload }) {
+  const date = todayKey();
+  const [qs, setQs] = useState(null);
+  const ans = useStore((s) => s.dailyQ?.[date]) || [];
+  const answerDaily = useStore((s) => s.answerDaily);
+  useEffect(() => { dailyQuestions(date).then(setQs); }, [date]);
+  const answered = ans.filter(Boolean).length;
+  const pick = (i, c) => {
+    if (ans[i]) return; const ok = c === qs[i].answer;
+    answerDaily(date, i, c, ok);
+    if (ok) { sound.correct(); vibrate([15, 30, 15]); } else { sound.wrong(); vibrate(40); }
+    if (answered + 1 === 3) setTimeout(() => { pushMe().then(reload).catch(() => {}); }, 400);
+  };
+  const board = rows.filter((u) => u.today?.qa).sort((a, b) => (b.today.q - a.today.q) || (b.today.qa - a.today.qa));
+  if (!qs) return <div className="rq-skel" />;
+  return (
+    <motion.section className="col" style={{ gap: 12 }} {...tabAnim}>
+      <div className="rq-qhead">
+        <HelpCircle size={22} />
+        <div className="col" style={{ flex: 1, gap: 2 }}><b>أسئلة اليوم</b><span className="xs" style={{ opacity: .85 }}>٣ أسئلة جديدة كل يوم — كل إجابة صح بـ١٠ نقاط</span></div>
+        <b className="rq-qscore">{ar(ans.filter((x) => x?.ok).length)}/٣</b>
+      </div>
+      {qs.map((q, i) => {
+        const a = ans[i];
+        return (
+          <motion.div key={q.id} className="rq-q" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * .08 }}>
+            <div className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
+              <span className="rq-qn">{ar(i + 1)}</span>
+              <b className="small" style={{ lineHeight: 1.9, flex: 1 }}>{q.q}</b>
+            </div>
+            <div className="col" style={{ gap: 6 }}>
+              {q.options.map((o, j) => {
+                const st = a ? (j === q.answer ? ' ok' : j === a.c ? ' bad' : ' dim') : '';
+                return <button key={j} className={'rq-opt' + st} disabled={!!a} onClick={() => pick(i, j)}><span>{LETTERS[j]}</span>{o}</button>;
+              })}
+            </div>
+            {a && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className={'xs rq-note' + (a.ok ? ' ok' : '')}>{a.ok ? '✓ إجابة صحيحة — +١٠ نقاط. ' : '✗ الإجابة الصحيحة: ' + q.options[q.answer] + '. '}{q.note}</motion.div>}
+          </motion.div>
+        );
+      })}
+      <section className="card col" style={{ gap: 8 }}>
+        <b className="h2 row" style={{ gap: 6 }}><Medal size={18} className="accent" /> نتيجة المجموعة النهارده</b>
+        {board.length ? board.map((u, i) => (
+          <div key={u.uid} className="row" style={{ gap: 10 }}>
+            <span className={'rq-rank r' + (i + 1)}>{ar(i + 1)}</span>
+            <Avatar name={u.name} hue={u.hue} size={30} me={u.me} />
+            <b className="small" style={{ flex: 1 }}>{u.me ? 'أنت' : u.name}</b>
+            <span className="small"><b className="accent">{ar(u.today.q)}</b> صح من {ar(u.today.qa)}</span>
+          </div>
+        )) : <span className="xs muted">لسه محدش جاوب النهارده — كن الأول!</span>}
+      </section>
+    </motion.section>
+  );
+}
+
+// لوحة الشرف: أبطال الأسبوع في كل مجال + تنافس الذكر
+const HONORS = [
+  { k: 'week', t: 'نجم الأسبوع', d: 'أعلى نقاط', icon: '👑', c: '#E8BE5C', f: (n) => `${arNum(n)} نقطة` },
+  { k: 'wkD', t: 'بطل الذكر', d: 'أكتر تسبيح', icon: '📿', c: '#1FA36A', f: (n) => `${arNum(n)} ذكر` },
+  { k: 'wkP', t: 'رفيق القرآن', d: 'أكتر صفحات', icon: '📖', c: '#2F7BEA', f: (n) => `${arNum(n)} صفحة` },
+  { k: 'wkQ', t: 'فارس الأسئلة', d: 'أكتر إجابات صح', icon: '🧠', c: '#8B5CF6', f: (n) => `${arNum(n)} إجابة` },
+  { k: 'streak', t: 'صاحب السلسلة', d: 'أطول مواظبة', icon: '🔥', c: '#F07A2A', f: (n) => daysAr(n) },
+];
+function HonorTab({ rows }) {
+  const [span, setSpan] = useState('week');
+  const dz = rows.map((u) => ({ ...u, dz: span === 'week' ? u.wkD : (u.today?.wird || 0) })).sort((a, b) => b.dz - a.dz);
+  const top = dz[0]?.dz || 1;
+  return (
+    <motion.section className="col" style={{ gap: 12 }} {...tabAnim}>
+      <div className="rq-honor-grid">
+        {HONORS.map((h, i) => {
+          const best = [...rows].sort((a, b) => (b[h.k] || 0) - (a[h.k] || 0))[0]; const v = best?.[h.k] || 0;
+          return (
+            <motion.div key={h.k} className={'rq-honor' + (i === 0 ? ' big' : '')} style={{ '--c': h.c }} initial={{ opacity: 0, scale: .92 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * .07 }}>
+              <span className="rq-honor-ic">{h.icon}</span>
+              <b className="small">{h.t}</b>
+              {v > 0 ? (<>
+                <Avatar name={best.name} hue={best.hue} size={i === 0 ? 54 : 40} me={best.me} />
+                <b className={i === 0 ? 'h2' : 'small'}>{best.me ? 'أنت' : best.name}</b>
+                <span className="xs" style={{ color: h.c, fontWeight: 700 }}>{h.f(v)}</span>
+              </>) : <span className="xs muted" style={{ marginTop: 8 }}>{h.d} — لسه محدش</span>}
+            </motion.div>
+          );
+        })}
+      </div>
+      <section className="card col" style={{ gap: 10 }}>
+        <div className="between"><b className="h2 row" style={{ gap: 6 }}>📿 تنافس الذكر</b>
+          <div className="rq-seg">{[['today', 'النهارده'], ['week', 'الأسبوع']].map(([k, l]) => <button key={k} className={span === k ? 'on' : ''} onClick={() => setSpan(k)}>{l}</button>)}</div></div>
+        {dz.map((u, i) => (
+          <div key={u.uid} className="row" style={{ gap: 10 }}>
+            <span className={'rq-rank r' + (i + 1)}>{i === 0 && u.dz ? <Crown size={14} /> : ar(i + 1)}</span>
+            <Avatar name={u.name} hue={u.hue} size={32} me={u.me} />
+            <div className="col" style={{ flex: 1, gap: 4, minWidth: 0 }}>
+              <div className="between"><b className="small">{u.me ? 'أنت' : u.name}</b><b className="small accent">{arNum(u.dz)}</b></div>
+              <div className="rq-bar"><i style={{ width: pct(u.dz, top) + '%', '--h': u.hue ?? 150 }} /></div>
+            </div>
+          </div>
+        ))}
+      </section>
+      <div className="xs muted center">لوحة الشرف بتتجدد كل سبت — «وفي ذلك فليتنافس المتنافسون»</div>
+    </motion.section>
+  );
 }
