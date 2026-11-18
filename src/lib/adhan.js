@@ -30,6 +30,7 @@ export async function playAdhan(key) {
     await audio.play(); emit(); return true;
   } catch { emit(); return false; }
 }
+export const adhanTime = () => (audio && phase === 'adhan' ? audio.currentTime : 0);
 export function stopAdhan() { if (audio) { audio.onended = null; audio.pause(); audio.currentTime = 0; } emit(); }
 export function useAdhanState() {
   const [p, setP] = useState({ playing: false, phase: null });

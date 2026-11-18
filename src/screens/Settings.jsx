@@ -90,6 +90,12 @@ export default function Settings() {
                 <button className="btn soft" style={{ flex: 1, minHeight: 40, fontSize: 12 }} onClick={() => playAdhan('dua')}><Play size={15} />الدعاء</button>
               </>}
             </div>
+            <div className="col" style={{ gap: 6, padding: '4px 0 8px' }}>
+              <span className="small muted">معاينة شاشة الأذان بالكلمات</span>
+              <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+                {[['fajr', 'الفجر'], ['dhuhr', 'الظهر'], ['asr', 'العصر'], ['maghrib', 'المغرب'], ['isha', 'العشاء']].map(([k, n]) => <button key={k} className="chip" onClick={() => { stopAdhan(); dispatchEvent(new CustomEvent('rf-adhan-preview', { detail: { key: k, name: n, time: new Date() } })); }}>{n}</button>)}
+              </div>
+            </div>
             <div className="xs muted" style={{ lineHeight: 1.8, paddingBottom: 6 }}>يُرفع الأذان كاملًا والتطبيق مفتوح، ويظهر إشعار بدخول الوقت إن سمحت بالإشعارات.</div>
           </>
         )}
