@@ -59,7 +59,7 @@ export async function drawAyahCard({ ayahs, style = 'emerald', size = 'post', ta
 
   // نص الآية: نختار أكبر خط يناسب المساحة
   const text = ayahs.map((a) => a.t).join(' ');
-  const top = py + ph + 50; const tafH = tafsir ? 230 : 0;
+  const top = py + ph + 50; const tafH = tafsir ? 260 : 0;
   const bottom = H - M - FOOT - 70 - tafH; const maxW = W - 2 * M - 120;
   let fs = size === 'story' ? 108 : 92, ls = [];
   for (; fs >= 34; fs -= 3) { ctx.font = `400 ${fs}px "KFGQPC Hafs"`; ls = lines(ctx, text, maxW); if (ls.length * fs * 1.95 <= bottom - top) break; }
@@ -74,11 +74,11 @@ export async function drawAyahCard({ ayahs, style = 'emerald', size = 'post', ta
   // التفسير (اختياري)
   if (tafsir) {
     const ty = bottom + 76, tw = W - 2 * M - 110, tx = (W - tw) / 2;
-    ctx.fillStyle = S.panel; ctx.beginPath(); ctx.roundRect(tx, ty, tw, 190, 24); ctx.fill();
+    ctx.fillStyle = S.panel; ctx.beginPath(); ctx.roundRect(tx, ty, tw, 220, 24); ctx.fill();
     ctx.fillStyle = S.accent; ctx.font = '600 24px "Readex Pro"'; ctx.fillText('التفسير الميسّر', W / 2, ty + 40);
-    ctx.fillStyle = S.soft; ctx.font = '400 27px "Amiri"';
+    ctx.fillStyle = S.text; ctx.globalAlpha = .9; ctx.font = '400 31px "Amiri"';
     let tl = lines(ctx, tafsir, tw - 50); if (tl.length > 3) { tl = tl.slice(0, 3); tl[2] = tl[2].replace(/\s+\S*$/, '') + ' …'; }
-    tl.forEach((l, i) => ctx.fillText(l, W / 2, ty + 88 + i * 42));
+    tl.forEach((l, i) => ctx.fillText(l, W / 2, ty + 92 + i * 48)); ctx.globalAlpha = 1;
   }
 
   // التذييل: هوية التطبيق + المطوّر + QR
