@@ -283,3 +283,9 @@ input[type=range] { accent-color: var(--acc); }
 .st-para.dim { opacity: .5; }
 .st-dock { position: fixed !important; bottom: calc(env(safe-area-inset-bottom) + 12px); left: 12px; right: 12px; width: auto; max-width: 496px; margin: 0 auto; z-index: 40; }
 .rc-tag { white-space: nowrap; }
+.love-pill { position: relative; display: inline-flex; align-items: center; gap: 7px; max-width: 190px; min-height: 40px; padding: 4px 12px 4px 6px; border-radius: 999px; text-decoration: none; color: #fff; background: linear-gradient(135deg, #F0475A, #B3122B); box-shadow: 0 8px 22px -8px #E0304A, inset 0 1px 0 rgba(255,255,255,.3); }
+.love-ring { position: absolute; inset: -3px; border-radius: inherit; border: 2px solid #F0475A; animation: love-ring 1.6s ease-out infinite; pointer-events: none; }
+@keyframes love-ring { from { opacity: .8; transform: scale(1); } to { opacity: 0; transform: scale(1.18, 1.4); } }
+.love-ic { width: 30px; height: 30px; flex: none; border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,.22); }
+.love-t { font-size: 11.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.love-badge { position: absolute; top: -6px; left: -6px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: #FFD15C; color: #3a0d05; font-size: 11px; font-weight: 800; display: grid; place-items: center; border: 2px solid var(--bg); }

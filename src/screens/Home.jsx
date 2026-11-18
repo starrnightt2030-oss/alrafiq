@@ -1,5 +1,5 @@
 import { BookOpen, CircleDot, HandHeart, ShieldCheck, Headphones, BookMarked, Trophy, Flame, Sunrise, Sunset, BellRing, ChartColumn, CheckCircle2, GraduationCap, MessageCircleHeart, Compass } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useStore, streakOf } from '../store.js';
 import { THEMES, THEME_ORDER } from '../themes.js';
 import { AZKAR } from '../data/azkar.js';
@@ -17,7 +17,7 @@ import TileArt from '../components/TileArt.jsx';
 import { dueReviews, memorizedCount } from '../lib/hifz.js';
 import { STORY } from '../data/stories/index.js';
 import { qiblaBearing } from '../lib/qibla.js';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { sound } from '../lib/sound.js';
 import { ArrowLeftRight, Check, RotateCcw, Play } from 'lucide-react';
 
@@ -79,10 +79,7 @@ export default function Home() {
         <div className="col" style={{ alignItems: 'flex-end', gap: 8 }}>
         <div className="row" style={{ gap: 8 }}>
         <a href="#/qibla" className="icon-btn" aria-label="اتجاه القبلة"><Compass size={20} /></a>
-        <a href="#/inbox" className="icon-btn" aria-label={unread ? `رسائل الرفيق — ${unread} جديدة` : 'رسائل الرفيق'} style={{ position: 'relative' }}>
-          <MessageCircleHeart size={20} />
-          {unread > 0 && <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ position: 'absolute', top: -5, left: -5, minWidth: 20, height: 20, padding: '0 5px', borderRadius: 999, background: '#E3A14A', color: '#1B1405', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--bg)' }}>{ar(unread)}</motion.span>}
-        </a>
+        <InboxPill unread={unread} />
         </div>
         <div className="row" style={{ gap: 6, padding: 6, borderRadius: 999, background: 'var(--surf)', border: '1px solid var(--line)' }} role="radiogroup" aria-label="الثيم">
           {THEME_ORDER.map((id) => (
@@ -246,5 +243,21 @@ function Tiles({ d, wirdTotal, goal, azDone, lastPage, surah, ch, streak, place,
         ); })}
       </motion.nav>
     </section>
+  );
+}
+
+// زر رسائل الرفيق: أحمر نابض دائمًا، بجملة محبّة تتبدّل
+const LOVE = ['رسالة بحب من الرفيق', 'الرفيق فاكرك دايمًا', 'كلمة حلوة مستنياك', 'افتح قلبك للرفيق'];
+function InboxPill({ unread }) {
+  const [i, setI] = useState(0);
+  useEffect(() => { const t = setInterval(() => setI((x) => (x + 1) % LOVE.length), 3500); return () => clearInterval(t); }, []);
+  const text = unread ? `عندك ${unread > 2 && unread < 11 ? ar(unread) + ' رسائل' : unread === 1 ? 'رسالة' : unread === 2 ? 'رسالتين' : ar(unread) + ' رسالة'} بحب 💌` : LOVE[i];
+  return (
+    <motion.a href="#/inbox" className="love-pill" aria-label={unread ? `رسائل الرفيق — ${unread} جديدة` : 'رسائل الرفيق'} animate={{ scale: [1, 1.05, 1, 1.04, 1] }} transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}>
+      <span className="love-ring" aria-hidden="true" />
+      <motion.span className="love-ic" animate={{ scale: [1, 1.25, 1, 1.18, 1], rotate: [0, -8, 0, 8, 0] }} transition={{ duration: 1.6, repeat: Infinity }}><MessageCircleHeart size={18} /></motion.span>
+      <AnimatePresence mode="wait"><motion.span key={text} className="love-t" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: .3 }}>{text}</motion.span></AnimatePresence>
+      {unread > 0 && <span className="love-badge">{ar(unread)}</span>}
+    </motion.a>
   );
 }
