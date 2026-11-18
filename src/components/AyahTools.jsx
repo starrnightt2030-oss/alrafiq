@@ -62,7 +62,7 @@ export function TafsirSheet({ k: k0, getAyah, onShare, onClose }) {
 export function ShareSheet({ k, getAyah, tafsir: tf0, onClose }) {
   const saved = useStore((s) => s.settings.share);
   const setSetting = useStore((s) => s.setSetting);
-  const opt = { style: 'emerald', size: 'post', ...(saved || {}) };
+  const opt = { style: 'mihrab', size: 'post', ...(saved || {}) }; if (!STYLES[opt.style]) opt.style = 'mihrab';
   const set = (p) => setSetting('share', { ...opt, ...p });
   const [count, setCount] = useState(1);
   const [withTafsir, setWithTafsir] = useState(false);
