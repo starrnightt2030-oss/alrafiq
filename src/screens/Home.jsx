@@ -14,6 +14,7 @@ import { STATUS, STATUS_ORDER } from '../lib/stats.js';
 import { useChallengeWatcher } from './Challenges.jsx';
 import { vibrate } from '../lib/haptics.js';
 import TileArt from '../components/TileArt.jsx';
+import { hijriParts, sunnahOf, ramadanDays } from '../lib/fasting.js';
 import { dueReviews, memorizedCount } from '../lib/hifz.js';
 import { STORY } from '../data/stories/index.js';
 import { qiblaBearing } from '../lib/qibla.js';
@@ -37,7 +38,7 @@ export const TILES = {
   prayer: { to: '/prayer', label: 'مواقيت الصلاة', sub: 'وسجلّ صلواتك', c: ['#2A9D8F', '#145A52'] },
   fasting: { to: '/fasting', label: 'الصيام ورمضان', sub: 'السنن والإمساكية والختمة', c: ['#7A3FB0', '#3A1460'] },
 };
-export const TILE_ORDER = ['azkar', 'quran', 'wird', 'hifz', 'quiz', 'stories', 'duas', 'ruqyah', 'challenges', 'report', 'qibla', 'prayer'];
+export const TILE_ORDER = ['azkar', 'quran', 'wird', 'hifz', 'quiz', 'stories', 'duas', 'ruqyah', 'challenges', 'report', 'qibla', 'prayer', 'fasting'];
 
 const surahOfPage = (p) => { let s = quranMeta.surahs[0]; for (const x of quranMeta.surahs) { if (x.page <= p) s = x; else break; } return s; };
 
@@ -190,6 +191,15 @@ function Continue({ suggest, sug, sugTotal, s, lastPage, ch }) {
   );
 }
 
+function fastStatus() {
+  const now = new Date(); const h = hijriParts(now);
+  if (h.m === 9) return `رمضان — اليوم ${ar(h.d)}`;
+  const s = sunnahOf(new Date(now.getTime() + 864e5));
+  if (s && !s.haram) return `بكرة: ${s.name}`;
+  const r = ramadanDays(now); if (r.length) { const n = Math.ceil((r[0] - now) / 864e5); if (n > 0) return `رمضان بعد ${daysAr(n)}`; }
+  return null;
+}
+
 function Tiles({ d, wirdTotal, goal, azDone, lastPage, surah, ch, streak, place, next }) {
   const saved = useStore((x) => x.settings.tiles);
   const setSetting = useStore((x) => x.setSetting);
@@ -210,6 +220,7 @@ function Tiles({ d, wirdTotal, goal, azDone, lastPage, surah, ch, streak, place,
     report: streak ? `سلسلة ${daysAr(streak)}` : null,
     qibla: `${ar(Math.round(qiblaBearing(place.lat, place.lng)))}°`,
     prayer: `${ar(prays)} من ٥ مسجّلة`,
+    fasting: fastStatus(),
   };
   const tap = (k, e) => {
     if (!edit) { sound.tap(); return; }

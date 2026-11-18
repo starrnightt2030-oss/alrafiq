@@ -6,6 +6,7 @@ import { App as CapApp } from '@capacitor/app';
 import { useStore } from '../store.js';
 import { resolveLocation, timesFor } from './prayer.js';
 import { THEMES } from '../themes.js';
+import { sunnahOf, hijriParts } from './fasting.js';
 
 export const isNative = Capacitor.isNativePlatform();
 
@@ -53,6 +54,11 @@ export async function rescheduleNative() {
         if (tb > now) list.push({ id: d * 100 + 11, title: b[0], body: b[1], channelId: 'rafiq', schedule: { at: tb, allowWhileIdle: true }, extra: { href: '#/azkar/evening' }, smallIcon: 'ic_stat_rafiq', iconColor: '#D9B55A' });
         const n = NUDGES[(d + now.getDate()) % NUDGES.length]; const tn = at(day, '13:20');
         if (tn > now) list.push({ id: d * 100 + 12, title: n[0], body: n[1], channelId: 'rafiq', schedule: { at: tn, allowWhileIdle: true }, extra: { href: n[2] }, smallIcon: 'ic_stat_rafiq', iconColor: '#D9B55A' });
+      }
+      // الصيام: تذكير الساعة ٩ مساءً قبل كل يوم صيام مستحب، والسحور في رمضان
+      { const tm = sunnahOf(new Date(day.getTime() + 864e5)); const when = at(day, '21:00');
+        if (tm && !tm.haram && !tm.fard && when > now) list.push({ id: d * 100 + 30, title: `بكرة ${tm.name}`, body: (tm.fadl || 'صيام مستحب') + ' — ما تنساش نيّة الصيام والسحور', channelId: 'rafiq', schedule: { at: when, allowWhileIdle: true }, extra: { href: '#/fasting' }, smallIcon: 'ic_stat_rafiq', iconColor: '#D9B55A' });
+        if (hijriParts(day).m === 9) { const fj = timesFor(place, day).find((p) => p.key === 'fajr')?.time; const su = fj && new Date(fj - 50 * 60000); if (su && su > now) list.push({ id: d * 100 + 31, title: 'وقت السحور', body: '«تسحّروا فإن في السحور بركة» — الإمساك بعد ٤٠ دقيقة', channelId: 'rafiq', schedule: { at: su, allowWhileIdle: true }, extra: { href: '#/fasting' }, smallIcon: 'ic_stat_rafiq', iconColor: '#D9B55A' }); }
       }
       // تذكيرات الجمعة: الكهف صباحًا، والاستعداد قبل الظهر، وساعة الإجابة قبل المغرب
       if (s.friday !== false && day.getDay() === 5) {

@@ -6,6 +6,7 @@ import { challengeState } from '../data/challenges.js';
 import { resolveLocation, timesFor } from './prayer.js';
 import { dueReviews } from './hifz.js';
 import meta from '../data/quranMeta.json';
+import { sunnahOf, hijriParts } from './fasting.js';
 
 // طابور الرسائل المنبثقة
 const subs = new Set();
@@ -83,7 +84,7 @@ function rules(s) {
   if (last && !day.prayers?.[last.key]) { const mins = (now - last.time) / 60000; if (mins > 40 && mins < 180) out.push({ key: `pray-${last.key}-${t}`, icon: 'bell', tone: 'remind', title: `صلّيت ${last.name}؟`, body: 'سجّلها علشان تقييمك يبقى دقيق — وجماعة يبقى أحسن وأحسن!', cta: { label: 'سجّل', href: '#/prayer' } }); }
 
   // الجمعة: الكهف من مغرب الخميس، والاستعداد للجمعة، والصلاة على النبي ﷺ، وساعة الإجابة آخر ساعة قبل المغرب
-  const wd = now.getDay();
+  const wd = now.getDay(); const h_ = hijriParts(now);
   const kahfP = meta.surahs[17].page, kahfEnd = meta.surahs[18].page - 1;
   const today = timesFor(place, now); const maghrib = today.find((p) => p.key === 'maghrib')?.time; const dhuhr = today.find((p) => p.key === 'dhuhr')?.time;
   if (s.settings.friday !== false) {
@@ -97,7 +98,8 @@ function rules(s) {
       if (maghrib && now >= maghrib - 60 * 60000 && now < maghrib) out.push({ key: 'ijaba-' + t, icon: 'star', tone: 'remind', title: 'ساعة الإجابة', body: 'آخر ساعة بعد العصر يوم الجمعة «لا يسأل الله فيها عبد مسلم شيئًا إلا أعطاه». ادعِ لنفسك وللي بتحبهم.', cta: { label: 'أدعية مختارة', href: '#/duas' } });
     }
   }
-  if ((wd === 0 || wd === 3) && H >= 18) out.push({ key: 'fast-' + t, icon: 'moon', tone: 'cheer', title: wd === 0 ? 'بكرة الاثنين' : 'بكرة الخميس', body: '«تُعرض الأعمال يوم الاثنين والخميس، فأحب أن يُعرض عملي وأنا صائم» — ما تيجي نصوم؟', cta: null });
+  { const tm = sunnahOf(new Date(now.getTime() + 864e5)); if (tm && !tm.haram && !tm.fard && H >= 18) out.push({ key: 'fast-' + t, icon: 'moon', tone: 'cheer', title: `بكرة ${tm.name}`, body: (tm.fadl ? `${tm.fadl}. ` : '') + 'ما تيجي ننوي الصيام؟ ومتنساش السحور فيه بركة.', cta: { label: 'الصيام', href: '#/fasting' } }); }
+  if (h_.m === 9 && H >= 2 && H < 5) out.push({ key: 'suhoor-' + t, icon: 'moon', tone: 'remind', title: 'وقت السحور', body: '«تسحّروا فإن في السحور بركة» — متفق عليه', cta: { label: 'الإمساكية', href: '#/fasting' } });
 
   // مراجعة الحفظ
   const due = dueReviews(s.hifz, 50).length;

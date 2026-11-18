@@ -3,6 +3,7 @@ import { BookMarked, Bookmark, Search, ChevronLeft, GraduationCap } from 'lucide
 import { useStore } from '../store.js';
 import { SURAHS, JUZ, surahAt } from '../lib/quran.js';
 import { ar } from '../lib/arabic.js';
+import AyahSearch from '../components/AyahSearch.jsx';
 
 const strip = (s) => s.replace(/[ً-ٰٟۖ-ۭ]/g, '').replace(/[أإآٱ]/g, 'ا').replace(/ة/g, 'ه');
 
@@ -25,6 +26,8 @@ export default function QuranIndex() {
         </div>
         <ChevronLeft size={20} style={{ color: 'var(--heroText)' }} aria-hidden="true" />
       </a>
+
+      <AyahSearch />
 
       <a href="#/hifz" className="card row" style={{ textDecoration: 'none', color: 'var(--text)' }}>
         <GraduationCap size={26} className="accent" aria-hidden="true" />

@@ -26,9 +26,16 @@ export function sunnahOf(date) {
   return null;
 }
 
+// الأيام المتتالية من نفس النوع (البيض، شوال، العشر، المحرم) تُجمع في عنصر واحد
+const GROUP = ['white', 'shawwal', 'dhul', 'muharram'];
 export function upcoming(n = 8, from = new Date()) {
   const out = [];
-  for (let i = 0; out.length < n && i < 60; i++) { const d = addDays(from, i); const s = sunnahOf(d); if (s && !s.haram && s.k !== 'ramadan') out.push({ date: d, key: todayKey(d), ...s }); }
+  for (let i = 0; out.length < n && i < 70; i++) {
+    const d = addDays(from, i); const s = sunnahOf(d); if (!s || s.haram || s.k === 'ramadan') continue;
+    const last = out[out.length - 1];
+    if (last && GROUP.includes(s.k) && last.k === s.k && Math.round((d - last.end) / 864e5) === 1) { last.end = d; last.count++; continue; }
+    out.push({ date: d, end: d, count: 1, key: todayKey(d), ...s });
+  }
   return out;
 }
 

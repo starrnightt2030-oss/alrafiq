@@ -25,7 +25,7 @@ function Rich({ text }) {
   ));
 }
 
-export function TafsirSheet({ k: k0, getAyah, onShare, onClose }) {
+export function TafsirSheet({ k: k0, getAyah, onShare, onClose, onListen }) {
   const [k, setK] = useState(k0);
   const [d, setD] = useState(null); const [err, setErr] = useState(false); const [about, setAbout] = useState(false);
   useEffect(() => { setD(null); setErr(false); loadTafsir(k.s).then(setD).catch(() => setErr(true)); }, [k.s]);
@@ -51,7 +51,7 @@ export function TafsirSheet({ k: k0, getAyah, onShare, onClose }) {
           </>
         )}
         <div className="grid2">
-          <button className="btn soft" onClick={() => { reciteStart(k); onClose(); }}><Play size={16} /> استمع</button>
+          <button className="btn soft" onClick={() => { if (onListen) onListen(k); else reciteStart(k); onClose(); }}><Play size={16} /> استمع</button>
           <button className="btn" onClick={() => onShare(k, t?.[0])}><Share2 size={16} /> شارك كصورة</button>
         </div>
       </div>
