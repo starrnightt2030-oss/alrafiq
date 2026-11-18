@@ -9,7 +9,7 @@ import { ar } from '../lib/arabic.js';
 import { start as reciteStart, nextKey, prevKey } from '../lib/recite.js';
 import { drawAyahCard, SIZES, STYLES, ART } from '../lib/ayahCard.js';
 import { ImagePlus } from 'lucide-react';
-const ALL = { ...Object.fromEntries(Object.entries(ART).map(([k, v]) => [k, { name: v.name, sw: v.sw, art: v }])), ...Object.fromEntries(Object.entries(STYLES).map(([k, v]) => [k, { name: v.name, sw: [v.bg[0], v.bg[1]], acc: v.accent }])) };
+const ALL = { infographic: null, ...Object.fromEntries(Object.entries(ART).map(([k, v]) => [k, { name: v.name, sw: v.sw, art: v }])), ...Object.fromEntries(Object.entries(STYLES).map(([k, v]) => [k, { name: v.name, sw: [v.bg[0], v.bg[1]], acc: v.accent }])) };
 import { shareImage } from '../lib/shareImage.js';
 import { useStore } from '../store.js';
 import { vibrate } from '../lib/haptics.js';
@@ -64,7 +64,7 @@ export function TafsirSheet({ k: k0, getAyah, onShare, onClose, onListen }) {
 export function ShareSheet({ k, getAyah, tafsir: tf0, onClose }) {
   const saved = useStore((s) => s.settings.share);
   const setSetting = useStore((s) => s.setSetting);
-  const opt0 = { style: 'mihrab', size: 'post', ...(saved || {}) }; if (!ALL[opt0.style] || opt0.style === 'photo') opt0.style = 'mihrab';
+  const opt0 = { style: 'infographic', size: 'post', ...(saved || {}) }; if (!ALL[opt0.style] || opt0.style === 'photo') opt0.style = 'infographic';
   const set = (p) => { if (p.style) setPhotoStyle(false); setSetting('share', { ...opt0, ...p }); };
   const [photo, setPhoto] = useState(null); const [photoStyle, setPhotoStyle] = useState(false);
   const fileRef = useRef(null);
@@ -80,7 +80,7 @@ export function ShareSheet({ k, getAyah, tafsir: tf0, onClose }) {
   useEffect(() => { if ((withTafsir || needT) && !tdata) loadTafsir(k.s).then((d) => { setTdata(d); if (!tafsir) setTafsir(d.a?.[k.a]?.[0] || ''); }).catch(() => {}); }, [withTafsir, needT]);
   useEffect(() => {
     let on = true; setImg(null);
-    const t = setTimeout(() => drawAyahCard({ ayahs, style: opt.style, size: opt.size, tafsir: withTafsir && count === 1 ? tafsir : '', tafsirFor: (a) => tdata?.a?.[a.a]?.[0] || '', photo }).then((c) => { if (!on) return; cv.current = c; setImg(c.toDataURL('image/jpeg', .85)); }), 120);
+    const t = setTimeout(() => drawAyahCard({ ayahs, style: opt.style, size: opt.size, tafsir: withTafsir && count === 1 ? tafsir : '', tafsirFor: (a) => tdata?.a?.[a.a]?.[0] || '', tdata, photo }).then((c) => { if (!on) return; cv.current = c; setImg(c.toDataURL('image/jpeg', .85)); }), 120);
     return () => { on = false; clearTimeout(t); };
   }, [opt.style, opt.size, count, withTafsir, tafsir, tdata, photo]); // eslint-disable-line
   const share = async () => {
@@ -111,7 +111,7 @@ export function ShareSheet({ k, getAyah, tafsir: tf0, onClose }) {
           <div className="row" style={{ gap: 8 }}>
             <button className="icon-btn" style={{ width: 36, height: 36 }} aria-label="آية أقل" onClick={() => setCount(Math.max(1, count - 1))}><Minus size={16} /></button>
             <b className="num" style={{ minWidth: 20, textAlign: 'center' }}>{ar(ayahs.length)}</b>
-            <button className="icon-btn" style={{ width: 36, height: 36 }} aria-label="آية أكتر" onClick={() => setCount(Math.min(6, count + 1))}><Plus size={16} /></button>
+            <button className="icon-btn" style={{ width: 36, height: 36 }} aria-label="آية أكتر" onClick={() => setCount(Math.min(10, count + 1))}><Plus size={16} /></button>
           </div>
         </div>
         {count === 1 && !needT && !ALL[opt.style]?.art && <label className="between small"><span>أضف التفسير الميسّر تحت الآية</span><input type="checkbox" checked={withTafsir} onChange={(e) => setWithTafsir(e.target.checked)} style={{ width: 22, height: 22, accentColor: 'var(--acc)' }} /></label>}

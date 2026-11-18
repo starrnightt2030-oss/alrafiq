@@ -83,13 +83,13 @@ function mosque(ctx, x, w, base, c) {
   ctx.restore();
 }
 
-export async function drawAyahCard({ ayahs, style = 'mihrab', size = 'post', tafsir = '', tafsirFor, photo }) {
+export async function drawAyahCard({ ayahs, style = 'mihrab', size = 'post', tafsir = '', tafsirFor, tdata, photo }) {
   await Promise.all(['400 60px "KFGQPC Hafs"', '700 40px "Amiri"', '400 30px "Amiri"', '600 28px "Readex Pro"', '400 24px "Readex Pro"'].map((f) => document.fonts?.load(f).catch(() => {})));
   if (ART[style]) {
     const A = ART[style]; const [W, H] = SIZES[size] || SIZES.post; const FOOT = 236;
     const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
     const ctx = cv.getContext('2d'); ctx.direction = 'rtl'; ctx.textAlign = 'center';
-    A.draw(ctx, W, H, H - FOOT + 20, ayahs, { tafsirFor, photo });
+    A.draw(ctx, W, H, H - FOOT + 20, ayahs, { tafsirFor, tdata, photo });
     ctx.filter = 'none'; ctx.shadowBlur = 0; ctx.textAlign = 'center';
     const S = { text: A.light ? '#1B1B1B' : '#FFFFFF', soft: A.light ? '#555' : 'rgba(255,255,255,.75)', accent: A.accent };
     await drawFooter(ctx, S, W, H, 44, FOOT, A.light, A.accent, style);

@@ -173,3 +173,127 @@ export const ART = {
     if (!img) { ctx.font = '600 30px "Readex Pro"'; ctx.fillStyle = '#fff'; ctx.fillText('اختار صورة من جهازك', W / 2, 100); }
   } },
 };
+
+// ——— إنفوجرافيك التدبّر: مقاطع الآيات ملوّنة، وأرقام بأسهم منقّطة تشير لبيان كل مقطع ———
+const PAL = [['#BFE6EA', '#14707C'], ['#E3F0B4', '#5E7A12'], ['#F7CFDB', '#B02A5B'], ['#DCD3F5', '#5A3FA8'], ['#F9D9B8', '#A65A12'], ['#C9EBD6', '#1E7A4A'], ['#CFE0F7', '#2C5AA0'], ['#F6E7A6', '#8A6A00']];
+const nrm = (s) => s.replace(/وٰ/g, 'ا').replace(/[ؐ-ًؚ-ٰٟۖ-ۭـࣰ-ࣿ]/g, '').replace(/[ٱأإآا]/g, '').replace(/ء/g, '').replace(/ؤ/g, 'و').replace(/[ئى]/g, 'ي').replace(/ة/g, 'ه').replace(/[^ء-ي]/g, '');
+const words = (t, n) => { const w = t.trim().split(/\s+/); return w.length > n ? w.slice(0, n).join(' ') + ' …' : t.trim(); };
+const firstSentence = (t) => (t.split(/(?<=[.؛])\s/)[0] || t);
+
+// تقسيم الآية الطويلة إلى مقاطع عند علامات الوقف
+function phrases(ayah) {
+  const t = ayah.t.replace(/\s*[٠-٩]+\s*$/, '');
+  const parts = t.split(/(?<=[ۖ-ۛ])\s+/).filter(Boolean);
+  // دمج المقاطع القصيرة جدًّا
+  const out = []; for (const p of parts) { if (out.length && nrm(out[out.length - 1]).length < 9) out[out.length - 1] += ' ' + p; else out.push(p); }
+  return out;
+}
+function buildSegments(ayahs, tdata) {
+  if (ayahs.length === 1) {
+    const a = ayahs[0]; const ph = phrases(a); const tf = tdata?.a?.[a.a] || ['', ''];
+    const gh = (tf[1] || '').split('\n').filter((l) => l.includes('﴾')).map((l) => { const m = l.match(/﴿([^﴾]+)﴾\s*:?\s*(.*)/); return m ? { w: nrm(m[1]), raw: m[1].replace(/[\u06D6-\u06ED]/g, ''), d: m[2].trim() } : null; }).filter(Boolean);
+    const clauses = (tf[0] || '').split(/(?<=[،.؛])\s+/).filter((c) => c.trim().length > 3);
+    return ph.map((p, i) => {
+      const np = nrm(p); const g = gh.find((x) => x.w && np.includes(x.w));
+      let note = '';
+      if (clauses.length) { const a0 = Math.floor(i * clauses.length / ph.length), a1 = Math.max(a0 + 1, Math.floor((i + 1) * clauses.length / ph.length)); note = clauses.slice(a0, a1).join(' '); }
+      if (g) note = `${g.raw}: ${g.d}`;
+      return { text: p + (i === ph.length - 1 ? ` ${ar(a.a)}` : ''), note: words(note.replace(/[،.؛]$/, ''), 15), a: a.a };
+    });
+  }
+  return ayahs.map((a) => ({ text: a.t, note: words(firstSentence(tdata?.a?.[a.a]?.[0] || '').replace(/[.؛]$/, ''), 16), a: a.a }));
+}
+function arrowDown(ctx, x, y, c) { ctx.fillStyle = c; ctx.beginPath(); ctx.moveTo(x - 7, y - 10); ctx.lineTo(x + 7, y - 10); ctx.lineTo(x, y); ctx.fill(); }
+function arrowUp(ctx, x, y, c) { ctx.fillStyle = c; ctx.beginPath(); ctx.moveTo(x - 7, y + 10); ctx.lineTo(x + 7, y + 10); ctx.lineTo(x, y); ctx.fill(); }
+
+ART.infographic = { name: 'إنفوجرافيك التدبّر', sw: ['#FFFFFF', '#BFE6EA'], accent: '#14707C', light: true, needsTafsir: true, draw(ctx, W, H, B, ayahs, opts) {
+  const tdata = opts.tdata;
+  ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = 'rgba(20,112,124,.06)'; ctx.lineWidth = 2; for (let y = 30; y < H; y += 120) for (let x = (y / 120) % 2 ? 30 : 90; x < W; x += 120) { star(ctx, x, y, 40, Math.PI / 16, 8, .7); ctx.stroke(); }
+  let segs = buildSegments(ayahs, tdata);
+  while (segs.length > 8) { let k = 0, best = 1e9; for (let i = 0; i < segs.length - 1; i++) { const l = segs[i].text.length + segs[i + 1].text.length; if (l < best) { best = l; k = i; } } segs.splice(k, 2, { text: segs[k].text + ' ' + segs[k + 1].text, note: segs[k].note, a: segs[k].a }); }
+  const name = plain(SURAHS[ayahs[0].s - 1].name);
+  const kursi = ayahs.length === 1 && ayahs[0].s === 2 && ayahs[0].a === 255;
+  const title = kursi ? 'آية الكرسي' : 'سورة ' + name;
+  ctx.font = '700 84px "Amiri"'; const tw = ctx.measureText(title).width;
+  const tg = ctx.createLinearGradient(W / 2 - tw / 2, 0, W / 2 + tw / 2, 0); tg.addColorStop(0, 'rgba(191,230,234,0)'); tg.addColorStop(.15, '#BFE6EA'); tg.addColorStop(.85, '#D9F0D2'); tg.addColorStop(1, 'rgba(217,240,210,0)');
+  ctx.fillStyle = tg; ctx.beginPath(); ctx.roundRect(W / 2 - tw / 2 - 30, 92, tw + 60, 46, 23); ctx.fill();
+  ctx.fillStyle = '#20302E'; ctx.fillText(title, W / 2, 128);
+  let top0 = 180;
+  if (ayahs.length === 1) { ctx.font = '400 28px "Amiri"'; ctx.fillStyle = '#5E7A78'; ctx.fillText(kursi ? 'سورة البقرة — الآية ٢٥٥' : `الآية ${ar(ayahs[0].a)}`, W / 2, 196); top0 = 220; }
+  let box = '';
+  if (tdata?.i) { const m = tdata.i.split('من مقاصد السورة')[1]; if (m) box = 'من مقاصد السورة: ' + words(m.replace(/•/g, '').trim().split('\n').filter(Boolean)[0] || '', 26); }
+  const boxH = box ? 150 : 0; const bottomLimit = B - boxH - (box ? 40 : 10);
+  const n = segs.length; const topIds = segs.map((_, i) => i).filter((i) => i < Math.ceil(n / 2)), botIds = segs.map((_, i) => i).filter((i) => i >= Math.ceil(n / 2));
+  const lane = 12, laneCount = Math.max(topIds.length, botIds.length);
+  const gutter = 34 + laneCount * lane;
+
+  let L = null;
+  for (let fs = 58; fs >= 24; fs -= 2) {
+    const blockW = W - 2 * (40 + gutter); ctx.font = `400 ${fs}px "KFGQPC Hafs"`; const padX = fs * .5 + 14, ph = fs * 1.8, gap = 16;
+    const pills = []; segs.forEach((sg, i) => { for (const l of lines(ctx, sg.text, blockW - 2 * padX)) pills.push({ i, t: l, w: ctx.measureText(l).width + 2 * padX }); });
+    const rows = []; let row = [], rw = 0;
+    for (const pl of pills) { if (row.length && (row.length >= 2 || rw + pl.w + gap > blockW)) { rows.push(row); row = []; rw = 0; } row.push(pl); rw += pl.w + gap; }
+    if (row.length) rows.push(row);
+    const nf = Math.max(22, Math.min(30, Math.round(fs * .52)));
+    ctx.font = `600 ${nf}px "Amiri"`;
+    const per = (ids) => Math.min(4, ids.length) || 1;
+    const colW = (ids) => (W - 80) / per(ids);
+    const mk = (ids) => ids.map((i) => lines(ctx, segs[i].note, colW(ids) - 24).slice(0, 4));
+    const tl = mk(topIds), bl = mk(botIds);
+    const rowsOf = (ids) => Math.ceil(ids.length / 4);
+    const hOf = (ls, ids) => { if (!ids.length) return 0; let h = 0; for (let r = 0; r < rowsOf(ids); r++) h += Math.max(...ls.slice(r * 4, r * 4 + 4).map((x) => x.length)) * nf * 1.45 + 18; return h; };
+    const topH = hOf(tl, topIds), botH = hOf(bl, botIds);
+    const conn = 46 + laneCount * 10;
+    const blockH = rows.length * (ph + gap) - gap;
+    const total = topH + conn + blockH + conn + botH;
+    if (top0 + total <= bottomLimit || fs <= 24) { L = { fs, padX, ph, gap, rows, nf, tl, bl, topH, botH, blockH, conn, total, blockW }; break; }
+  }
+  const startY = top0 + Math.max(0, (bottomLimit - top0 - L.total) / 2);
+  const blockTop = startY + L.topH + L.conn;
+  const maxRowW = Math.max(...L.rows.map((r) => r.reduce((a, p) => a + p.w, 0) + L.gap * (r.length - 1)));
+  const bR = W / 2 + maxRowW / 2, bL = W / 2 - maxRowW / 2;
+  const anchor = {};
+  L.rows.forEach((row, r) => {
+    const rw = row.reduce((a, p) => a + p.w, 0) + L.gap * (row.length - 1);
+    let x = W / 2 + rw / 2; const y = blockTop + r * (L.ph + L.gap);
+    row.forEach((p, j) => {
+      const [bg] = PAL[p.i % PAL.length];
+      ctx.fillStyle = bg; ctx.beginPath(); ctx.roundRect(x - p.w, y, p.w, L.ph, 12); ctx.fill();
+      ctx.font = `400 ${L.fs}px "KFGQPC Hafs"`; ctx.fillStyle = '#16211F'; ctx.fillText(p.t, x - p.w / 2, y + L.ph * .68);
+      if (!anchor[p.i]) { const side = row.length === 1 ? (p.i % 2 ? 'L' : 'R') : (j === 0 ? 'R' : 'L'); anchor[p.i] = { side, ex: side === 'R' ? x : x - p.w, y: y + L.ph / 2 }; }
+      x -= p.w + L.gap;
+    });
+  });
+  // البيانات والأسهم: تمر في الهامش الجانبي خارج الآيات ثم إلى البيان
+  const draw = (ids, ls, isTop) => {
+    if (!ids.length) return;
+    const R = ids.filter((i) => anchor[i].side === 'R'), Lf = ids.filter((i) => anchor[i].side === 'L');
+    const order = [...R, ...Lf.reverse()];
+    const per = Math.min(4, ids.length), cw = (W - 80) / per, lh = L.nf * 1.45;
+    const rowsH = []; for (let r = 0; r < Math.ceil(ids.length / 4); r++) rowsH.push(Math.max(...order.slice(r * 4, r * 4 + 4).map((i) => ls[ids.indexOf(i)].length)) * lh + 18);
+    order.forEach((i, k) => {
+      const [, fg] = PAL[i % PAL.length]; const r = Math.floor(k / 4), c = k % 4;
+      const cx = W - 40 - cw * (c + .5);
+      const nl = ls[ids.indexOf(i)];
+      const rowTop = isTop ? startY + rowsH.slice(0, r).reduce((a, b) => a + b, 0) : blockTop + L.blockH + L.conn + rowsH.slice(0, r).reduce((a, b) => a + b, 0);
+      const ty = isTop ? rowTop + (rowsH[r] - 18 - nl.length * lh) : rowTop + 14;
+      ctx.font = `600 ${L.nf}px "Amiri"`; ctx.fillStyle = fg; nl.forEach((l, j) => ctx.fillText(l, cx, ty + L.nf + j * lh));
+      const a = anchor[i]; const li = (a.side === 'R' ? R : Lf).indexOf(i);
+      const gx = a.side === 'R' ? bR + 26 + li * lane : bL - 26 - li * lane;
+      const hy = isTop ? blockTop - 18 - k * 9 : blockTop + L.blockH + 18 + k * 9;
+      const ny = isTop ? rowTop + rowsH[r] - 8 : rowTop + 2;
+      ctx.strokeStyle = fg; ctx.lineWidth = 2.2; ctx.setLineDash([7, 6]);
+      ctx.beginPath(); ctx.moveTo(a.ex, a.y); ctx.lineTo(gx, a.y); ctx.lineTo(gx, hy); ctx.lineTo(cx, hy); ctx.lineTo(cx, ny); ctx.stroke(); ctx.setLineDash([]);
+      if (isTop) arrowUp(ctx, cx, ny - 2, fg); else arrowDown(ctx, cx, ny + 2, fg);
+      ctx.fillStyle = fg; ctx.beginPath(); ctx.arc(a.ex, a.y, 18, 0, 7); ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke();
+      ctx.fillStyle = '#fff'; ctx.font = '700 22px "Amiri"'; ctx.textBaseline = 'middle'; ctx.fillText(ar(i + 1), a.ex, a.y + 2); ctx.textBaseline = 'alphabetic';
+    });
+  };
+  draw(topIds, L.tl, true); draw(botIds, L.bl, false);
+  if (box) {
+    const by = B - boxH - 20; ctx.fillStyle = '#E3F3EE'; ctx.beginPath(); ctx.roundRect(60, by, W - 120, boxH - 34, 24); ctx.fill();
+    ctx.font = '600 28px "Amiri"'; ctx.fillStyle = '#1F3B37'; lines(ctx, box, W - 200).slice(0, 2).forEach((l, i) => ctx.fillText(l, W / 2, by + 46 + i * 40));
+    ctx.font = '400 20px "Readex Pro"'; ctx.fillStyle = '#B02A5B'; ctx.fillText('المصدر: التفسير الميسّر — مجمع الملك فهد لطباعة المصحف الشريف', W / 2, by + boxH - 2);
+  }
+} };
