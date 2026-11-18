@@ -1,0 +1,33 @@
+name: Android compile check
+on:
+  push:
+    branches: ['check/**']
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21 }
+      - run: npm ci
+      - run: npm run build
+      - run: npx cap sync android
+      - name: Compile
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          set -o pipefail
+          ./gradlew assembleRelease --no-daemon 2>&1 | tail -150 > ../build.log && echo OK >> ../build.log || (echo FAILED >> ../build.log)
+      - name: Report
+        if: always()
+        run: |
+          git config user.name ci && git config user.email ci@example.com
+          git checkout --orphan ci-log-${{ github.run_id }}
+          git rm -rq --cached . 
+          git add -f build.log
+          git commit -qm log
+          git push -q origin HEAD:refs/heads/ci-log/${{ github.sha }}

@@ -78,6 +78,34 @@ function buzz(c, f, at, dur, gain) {
   o.connect(lp).connect(g).connect(c.destination); o.start(at); o.stop(at + dur + 0.05);
 }
 
+// تقليب ورقة المصحف: خشخشة الرفع + حفيف الورقة وهي بتلف + نزولها على الصفحة
+function pageFlip(c, at, gain) {
+  const sr = c.sampleRate, dur = 0.42, len = Math.floor(sr * dur);
+  const buf = c.createBuffer(1, len, sr); const d = buf.getChannelData(0);
+  let grain = 0;
+  for (let i = 0; i < len; i++) {
+    const t = i / sr;
+    // حفيف: ضوضاء بغلاف يرتفع ثم يهدأ
+    const sw = t < 0.06 ? 0 : Math.sin(Math.min(1, (t - 0.06) / 0.26) * Math.PI) ** 1.6;
+    // خشخشة: نبضات متفرقة في أول الحركة وآخرها
+    if (Math.random() < (t < 0.1 ? 0.012 : t > 0.3 && t < 0.36 ? 0.02 : 0.002)) grain = 0.6 + Math.random() * 0.6;
+    grain *= 0.93;
+    d[i] = (Math.random() * 2 - 1) * (sw * 0.55 + grain);
+  }
+  const src = c.createBufferSource(); src.buffer = buf;
+  src.playbackRate.value = 0.92 + Math.random() * 0.16;
+  const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 700;
+  const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 0.7;
+  bp.frequency.setValueAtTime(1800, at); bp.frequency.linearRampToValueAtTime(4200, at + 0.18); bp.frequency.linearRampToValueAtTime(2200, at + dur);
+  const g = c.createGain(); g.gain.value = gain;
+  src.connect(hp).connect(bp).connect(g).connect(c.destination); src.start(at);
+  // لمسة الورقة على الصفحة
+  const o = c.createBufferSource(); const n = Math.floor(sr * 0.05); const b2 = c.createBuffer(1, n, sr); const e = b2.getChannelData(0);
+  for (let i = 0; i < n; i++) e[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3);
+  o.buffer = b2; const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900; const g2 = c.createGain(); g2.gain.value = gain * 0.7;
+  o.connect(lp).connect(g2).connect(c.destination); o.start(at + 0.33);
+}
+
 // مقام حجاز خفيف: ري – مي بيمول – فا دييز – صول – لا
 const HIJAZ = [293.66, 311.13, 369.99, 392.0, 440.0, 587.33];
 
@@ -89,6 +117,7 @@ export const sound = {
   intro() { const v = enabled(); if (!v) return; const c = getCtx(); if (!c) return; const t = c.currentTime + 0.05; bell(c, HIJAZ[0], t, 2.6, 0.12 * v); bell(c, HIJAZ[3] * 2, t + 0.5, 2.2, 0.1 * v); bell(c, HIJAZ[5] * 2, t + 0.9, 2.4, 0.09 * v); },
   notify() { const v = enabled(); if (!v) return; const c = getCtx(); if (!c) return; const t = c.currentTime; [3, 5, 3].forEach((n, i) => bell(c, HIJAZ[n] * 2, t + i * 0.22, 1.2, 0.15 * v)); },
   unlock() { getCtx(); },
+  page() { const v = enabled(); if (!v || useStore.getState().settings.pageSound === false) return; const c = getCtx(); if (c) pageFlip(c, c.currentTime, 0.55 * v); },
   // أصوات لعبة «فاستبقوا الخيرات»
   tick() { const v = enabled(); if (!v) return; const c = getCtx(); if (c) bead(c, c.currentTime, 0.25 * v); },
   heartbeat() { const v = enabled(); if (!v) return; const c = getCtx(); if (!c) return; const t = c.currentTime; [0, 0.18, 0.6, 0.78].forEach((d, i) => thump(c, t + d, (i % 2 ? 0.35 : 0.5) * v)); },

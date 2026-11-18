@@ -21,6 +21,7 @@ import Qibla from './screens/Qibla.jsx';
 import Fasting from './screens/Fasting.jsx';
 import Rufaqa from './screens/Rufaqa.jsx';
 import { startRufaqaSync } from './lib/rufaqa.js';
+import { startWidgetSync, handleWidgetLinks } from './lib/widget.js';
 import Home from './screens/Home.jsx';
 import AzkarIndex from './screens/AzkarIndex.jsx';
 import AzkarReader from './screens/AzkarReader.jsx';
@@ -82,9 +83,10 @@ export default function App() {
     const stopCompanion = startCompanion();
     const stopNative = setupNative();
     const stopRufaqa = startRufaqaSync();
+    const stopWidget = startWidgetSync(); handleWidgetLinks();
     const unlock = () => { sound.unlock(); removeEventListener('pointerdown', unlock); };
     addEventListener('pointerdown', unlock);
-    return () => { removeEventListener('pointerdown', unlock); stopCompanion(); stopNative(); stopRufaqa(); };
+    return () => { removeEventListener('pointerdown', unlock); stopCompanion(); stopNative(); stopRufaqa(); stopWidget(); };
   }, []);
 
   const [adhan, setAdhan] = useState(null);

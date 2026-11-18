@@ -134,7 +134,7 @@ export default function MushafReader({ page: initial, mode }) {
   const listen = () => { closeTip(); if (rc.active) { setSheet(true); return; } setStartSheet(true); vibrate(8); };
   const begin = () => { if (pageRange) { reciteStart(pageRange.from); vibrate(10); } };
 
-  const turn = (d) => { const p = page + d; if (p < 1 || p > TOTAL_PAGES) return; setDir(d); setPage(p); vibrate(6); };
+  const turn = (d) => { const p = page + d; if (p < 1 || p > TOTAL_PAGES) return; setDir(d); setPage(p); vibrate(6); sound.page(); };
   const marked = bookmarks.includes(page);
   const s = surahAt(page), j = juzAt(page);
 
