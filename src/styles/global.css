@@ -326,3 +326,11 @@ input[type=range] { accent-color: var(--acc); }
 .sh-sw { width: 40px; height: 40px; border-radius: 50%; border: 0; position: relative; box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--line); }
 .sh-sw i { position: absolute; inset: 12px; border-radius: 50%; background: var(--a); }
 .sh-sw.on { box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--acc); transform: scale(1.06); }
+.sheet { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
+.sheet-handle { position: sticky; top: -10px; z-index: 2; margin: -10px -20px 4px; padding: 12px 0 10px; touch-action: none; cursor: grab; background: linear-gradient(var(--bg) 70%, transparent); }
+.sheet-handle .sheet-grip { margin: 0 auto; }
+.mu-hint { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; max-width: 500px; font-size: 11.5px; color: var(--muted); padding: 2px 0 6px; }
+.mu-hint b { color: var(--acc); }
+.mu-coach { position: absolute; inset: 0; z-index: 30; display: grid; place-items: center; background: rgba(0,0,0,.55); border-radius: 12px; border: 0; color: #fff; font: inherit; padding: 20px; }
+.mu-coach-card { max-width: 290px; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; padding: 20px 18px; border-radius: 24px; background: var(--bg); color: var(--text); border: 1px solid var(--acc); box-shadow: 0 20px 40px -12px #000; }
+.mu-finger { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(135deg, var(--acc), var(--acc2)); color: var(--onAcc); }

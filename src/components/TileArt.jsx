@@ -111,6 +111,14 @@ const ART = {
     <path d="M60 30l3.5 7 7.5 1-5.5 5 1.4 7.5L60 47l-6.9 3.5 1.4-7.5-5.5-5 7.5-1z" fill="#fff" />
     <Spark x={18} y={70} s={6} f="#fff" /><Spark x={104} y={66} s={5} f="#FFF0BE" /><Spark x={100} y={12} s={4} f="#fff" />
   </>),
+  fasting: (p) => (<>
+    <circle cx="60" cy="52" r="46" fill={`url(#${p}r)`} />
+    <path d="M70 12a30 30 0 1 0 0 56a24 24 0 1 1 0-56z" fill={`url(#${p}g)`} />
+    <Spark x={86} y={26} s={6} f="#fff" /><Spark x={40} y={16} s={4} f="#FFF0BE" />
+    <path d="M22 84h76c-3 14-18 24-38 24S25 98 22 84z" fill={`url(#${p}w)`} />
+    {[[40, 80], [52, 76], [64, 77], [76, 80], [58, 84]].map(([x, y], i) => <ellipse key={i} cx={x} cy={y} rx="9" ry="5.5" fill={i % 2 ? '#8B4A1C' : '#A65A24'} transform={`rotate(${i * 25 - 40} ${x} ${y})`} />)}
+    <path d="M30 96h60" stroke={`url(#${p}g)`} strokeWidth="2.5" />
+  </>),
   prayer: (p) => (<>
     <circle cx="60" cy="56" r="46" fill={`url(#${p}r)`} />
     <path d="M30 10a14 14 0 1 0 12 22a11 11 0 1 1 -12-22z" fill={`url(#${p}g)`} />

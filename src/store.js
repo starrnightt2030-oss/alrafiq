@@ -42,6 +42,9 @@ export const useStore = create(
       sent: {},
       quiz: { seen: {}, history: [], best: 0, names: [], current: null },
       backupAt: null,
+      fasts: {},
+      // الصيام: تسجيل يوم الصيام (k = نوعه) وتبديله
+      toggleFast: (key, k) => set((s) => { const f = { ...s.fasts }; const had = !!f[key]; if (had) delete f[key]; else f[key] = k || 'nafl'; return { fasts: f, points: s.points + (had ? -20 : 20) }; }),
       markBackup: () => set({ backupAt: Date.now() }),
 
       // «فاستبقوا الخيرات»: seen يحفظ وقت آخر ظهور لكل سؤال حتى لا يتكرر في المحاولات التالية
@@ -135,6 +138,7 @@ export const useStore = create(
         hifz: { ...current.hifz, ...(persisted?.hifz || {}), plan: { ...current.hifz.plan, ...(persisted?.hifz?.plan || {}) } },
         challenge: { ...current.challenge, ...(persisted?.challenge || {}) },
         quiz: { ...current.quiz, ...(persisted?.quiz || {}) },
+        fasts: { ...(persisted?.fasts || {}) },
       }),
       migrate: (state) => state,
     }

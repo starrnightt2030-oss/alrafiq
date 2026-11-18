@@ -10,7 +10,7 @@ import Q from '../data/quranSnippets.json';
 import { firstMemorize, schedule, dueReviews } from '../lib/hifz.js';
 import { toast } from '../components/ui.jsx';
 import { sound } from '../lib/sound.js';
-import { Eye, EyeOff, Headphones } from 'lucide-react';
+import { Eye, EyeOff, Headphones, BookOpenText, Pointer } from 'lucide-react';
 import { ReciteDock, ReciteSheet, AyahMenu, StartSheet, Avatar } from '../components/Recite.jsx';
 import { TafsirSheet, ShareSheet } from '../components/AyahTools.jsx';
 import { useRecite, start as reciteStart, stop as reciteStop, DEFAULTS, HL, reciterOf } from '../lib/recite.js';
@@ -93,6 +93,8 @@ export default function MushafReader({ page: initial, mode }) {
   const [menu, setMenu] = useState(null);
   const [segStart, setSegStart] = useState(null);
   const [tafsirK, setTafsirK] = useState(null);
+  const [coach, setCoach] = useState(() => { try { return !localStorage.getItem('rf-coach-ayah'); } catch { return false; } });
+  const closeCoach = () => { setCoach(false); try { localStorage.setItem('rf-coach-ayah', '1'); } catch {} };
   const [shareK, setShareK] = useState(null);
   useEffect(() => () => reciteStop(), []);
   useEffect(() => { if (!rc.range) return; setSegStart(null); }, [rc.range]);
@@ -109,7 +111,7 @@ export default function MushafReader({ page: initial, mode }) {
   useEffect(() => {
     const calc = () => {
       const vh = window.innerHeight, vw = Math.min(window.innerWidth, 520);
-      const h = Math.max(360, vh - (mode ? 260 : 150) - 56), w = Math.min(vw - 20, h * 0.66);
+      const h = Math.max(360, vh - (mode ? 260 : 150) - 76), w = Math.min(vw - 20, h * 0.66);
       setSize({ w: Math.round(w), h: Math.round(Math.min(h, w / 0.62)) });
     };
     calc(); addEventListener('resize', calc); return () => removeEventListener('resize', calc);
@@ -138,6 +140,7 @@ export default function MushafReader({ page: initial, mode }) {
         <button className="icon-btn" aria-label="فهرس المصحف" onClick={() => go('/quran')}><List size={20} /></button>
         <div className="center"><div className="amiri" style={{ fontSize: 19, fontWeight: 700 }}>سورة {s.name}</div><div className="xs muted">الجزء {ar(j.juz)}</div></div>
         <div className="row" style={{ gap: 8 }}>
+          <button className="icon-btn" aria-label="تفسير الصفحة" onClick={() => { closeCoach(); if (pageRange) setTafsirK(pageRange.from); }}><BookOpenText size={20} /></button>
           <button className={'icon-btn rc-listen' + (rc.active ? ' on' : '')} aria-label={rc.active ? 'إعدادات التلاوة' : 'استمع للصفحة'} onClick={listen}><Headphones size={20} /></button>
           <button className="icon-btn" aria-label={marked ? 'إزالة العلامة' : 'حفظ علامة'} aria-pressed={marked} onClick={() => { toggleBookmark(page); vibrate(12); }}>
             <Bookmark size={20} fill={marked ? 'currentColor' : 'none'} />
@@ -148,6 +151,16 @@ export default function MushafReader({ page: initial, mode }) {
       <div style={{ position: 'relative', width: size.w, height: size.h }}>
         {error && <div className="card center" style={{ marginTop: 40 }}>تعذّر تحميل المصحف. تأكد من الاتصال بالإنترنت عند أول فتح، ثم يعمل بدونه.<br /><button className="btn" style={{ marginTop: 12 }} onClick={() => location.reload()}>إعادة المحاولة</button></div>}
         {!data && !error && <div className="center muted" style={{ paddingTop: 120 }}>جارٍ تحميل المصحف…</div>}
+        <AnimatePresence>{coach && data && !mode && (
+          <motion.button className="mu-coach" onClick={closeCoach} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ delay: .6 }}>
+            <motion.div className="mu-coach-card" initial={{ y: 20, scale: .9 }} animate={{ y: 0, scale: 1 }} transition={{ delay: .8, type: 'spring' }}>
+              <motion.span className="mu-finger" animate={{ scale: [1, .85, .85, 1] }} transition={{ duration: 1.6, repeat: Infinity }}><Pointer size={30} /></motion.span>
+              <b className="h2">اضغط مطوّل على أي آية</b>
+              <span className="small muted" style={{ lineHeight: 1.9 }}>هيظهرلك: <b className="accent">التفسير ومعاني الكلمات</b>، ومشاركة الآية كصورة، والاستماع والتكرار. وزرار 📖 فوق بيفتح تفسير الصفحة.</span>
+              <span className="btn" style={{ minHeight: 42, width: '100%' }}>فهمت</span>
+            </motion.div>
+          </motion.button>
+        )}</AnimatePresence>
         {data && (
           <AnimatePresence initial={false} custom={dir} mode="popLayout">
             <motion.div key={page} custom={dir}
@@ -163,6 +176,7 @@ export default function MushafReader({ page: initial, mode }) {
       </div>
 
       <AnimatePresence>{rc.active && <ReciteDock key="dock" onSettings={() => setSheet(true)} />}</AnimatePresence>
+      {!rc.active && !mode && <div className="mu-hint"><Pointer size={13} /> اضغط مطوّل على أي آية: <b>تفسير</b> · <b>مشاركة</b> · <b>تكرار</b></div>}
       {!rc.active && (
         <div style={{ position: 'relative', width: '100%', maxWidth: 500 }}>
           <AnimatePresence>{tip && (

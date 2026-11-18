@@ -35,6 +35,7 @@ export const TILES = {
   report: { to: '/report', label: 'تقييمي', sub: 'أسبوعي وشهري', c: ['#5B6BE0', '#2C2F86'] },
   qibla: { to: '/qibla', label: 'القبلة', sub: 'بوصلة حيّة', c: ['#4A4A52', '#16161C'] },
   prayer: { to: '/prayer', label: 'مواقيت الصلاة', sub: 'وسجلّ صلواتك', c: ['#2A9D8F', '#145A52'] },
+  fasting: { to: '/fasting', label: 'الصيام ورمضان', sub: 'السنن والإمساكية والختمة', c: ['#7A3FB0', '#3A1460'] },
 };
 export const TILE_ORDER = ['azkar', 'quran', 'wird', 'hifz', 'quiz', 'stories', 'duas', 'ruqyah', 'challenges', 'report', 'qibla', 'prayer'];
 
