@@ -20,7 +20,9 @@ function drawLines(ctx, f, cx, top, h, color) {
   for (const l of f.ls) { ctx.fillStyle = typeof color === 'function' ? color(y - f.fs, y) : color; ctx.fillText(l, cx, y); y += f.lh; }
   return y - f.lh + f.fs * 0.6;
 }
-const refOf = (ayahs) => { const a = ayahs[0], b = ayahs[ayahs.length - 1]; const n = plain(SURAHS[a.s - 1].name); return a.a === b.a ? `سورة ${n} — الآية ${ar(a.a)}` : `سورة ${n} — الآيات ${ar(a.a)}–${ar(b.a)}`; };
+// نص المرجع: آية، أو نطاق متتالي، أو آيات متفرقة
+export const refText = (ayahs) => { const a = ayahs[0], b = ayahs[ayahs.length - 1]; const n = plain(SURAHS[a.s - 1].name); if (a.a === b.a) return `${n} — الآية ${ar(a.a)}`; const seq = ayahs.every((x, i) => !i || x.a === ayahs[i - 1].a + 1); return seq ? `${n} — الآيات ${ar(a.a)}–${ar(b.a)}` : `${n} — الآيات ${ayahs.map((x) => ar(x.a)).join('، ')}`; };
+const refOf = (ayahs) => 'سورة ' + refText(ayahs);
 
 export const ART = {
   // حديقة ليلية: ضوء ضبابي، يراعات، زهور، وكرة نور زجاجية حول الآية

@@ -28,7 +28,7 @@ function SuraHead({ name }) {
   );
 }
 
-function Page({ n, ayahs, width, height, hidden, activeKey, segStart, onAyah }) {
+function Page({ n, ayahs, width, height, hidden, activeKey, segStart, onAyah, picked, onTap }) {
   const press = useRef(null);
   const inner = useRef(null);
   const blocks = pageBlocks(ayahs);
@@ -59,10 +59,10 @@ function Page({ n, ayahs, width, height, hidden, activeKey, segStart, onAyah }) 
         {blocks.map((b, i) => b.type === 'head' ? <SuraHead key={i} name={b.name} />
           : b.type === 'basmala' ? <div key={i} className="basmala">{Q.basmala}</div>
           : <p key={i} className="mushaf-text" style={{ margin: 0, textAlignLast: special ? 'center' : (i === blocks.length - 1 && n !== 604 ? 'justify' : 'center') }}>
-              {b.ayahs.map((x) => { const on = activeKey && activeKey.s === x.s && activeKey.a === x.a; const seg = segStart && segStart.s === x.s && segStart.a === x.a; return (
-                <span key={x.s + ':' + x.a} data-ayah={x.s + ':' + x.a} className={'ayah' + (on ? ' on' : '') + (seg ? ' seg' : '')}
-                  onContextMenu={(e) => { e.preventDefault(); onAyah?.(x); }}
-                  onPointerDown={(e) => { const p0 = [e.clientX, e.clientY]; clearTimeout(press.current?.t); press.current = { p0, t: setTimeout(() => { vibrate(15); onAyah?.(x); }, 480) }; }}
+              {b.ayahs.map((x) => { const on = activeKey && activeKey.s === x.s && activeKey.a === x.a; const seg = segStart && segStart.s === x.s && segStart.a === x.a; const pk = picked?.some((p) => p.s === x.s && p.a === x.a); return (
+                <span key={x.s + ':' + x.a} data-ayah={x.s + ':' + x.a} className={'ayah' + (on ? ' on' : '') + (seg ? ' seg' : '') + (pk ? ' pick' : '')} onClick={onTap ? () => onTap(x) : undefined}
+                  onContextMenu={(e) => { e.preventDefault(); if (!onTap) onAyah?.(x); }}
+                  onPointerDown={(e) => { const p0 = [e.clientX, e.clientY]; clearTimeout(press.current?.t); press.current = { p0, t: setTimeout(() => { if (onTap) return; vibrate(15); onAyah?.(x); }, 480) }; }}
                   onPointerMove={(e) => { const p = press.current; if (p && Math.hypot(e.clientX - p.p0[0], e.clientY - p.p0[1]) > 10) clearTimeout(p.t); }}
                   onPointerUp={() => clearTimeout(press.current?.t)} onPointerCancel={() => clearTimeout(press.current?.t)}>{x.t} </span>); })}
             </p>)}
@@ -96,6 +96,10 @@ export default function MushafReader({ page: initial, mode }) {
   const [coach, setCoach] = useState(() => { try { return !localStorage.getItem('rf-coach-ayah'); } catch { return false; } });
   const closeCoach = () => { setCoach(false); try { localStorage.setItem('rf-coach-ayah', '1'); } catch {} };
   const [shareK, setShareK] = useState(null);
+  const [picked, setPicked] = useState(null);
+  const tapPick = (x) => {
+    setPicked((p) => { const cur = p || []; if (cur.length && cur[0].s !== x.s) { toast('اختار آيات من نفس السورة'); return cur; } const has = cur.some((q) => q.s === x.s && q.a === x.a); if (!has && cur.length >= 10) { toast('أقصى حاجة ١٠ آيات في الصورة'); return cur; } vibrate(8); return has ? cur.filter((q) => !(q.s === x.s && q.a === x.a)) : [...cur, { s: x.s, a: x.a }]; });
+  };
   useEffect(() => () => reciteStop(), []);
   useEffect(() => { if (!rc.range) return; setSegStart(null); }, [rc.range]);
   const hifzPage = useStore((s) => s.hifz.pages[page]);
@@ -169,15 +173,22 @@ export default function MushafReader({ page: initial, mode }) {
               drag="x" dragConstraints={{ left: 0, right: 0 }} dragElastic={0.35}
               onDragEnd={(_, info) => { if (info.offset.x > 70) turn(1); else if (info.offset.x < -70) turn(-1); }}
               style={{ position: 'absolute', inset: 0, touchAction: 'pan-y' }}>
-              <Page n={page} ayahs={data.pages[page]} width={size.w} height={size.h} hidden={hidden} activeKey={rc.basmala ? null : rc.key} segStart={segStart} onAyah={(x) => setMenu({ s: x.s, a: x.a })} />
+              <Page n={page} ayahs={data.pages[page]} width={size.w} height={size.h} hidden={hidden} activeKey={rc.basmala ? null : rc.key} segStart={segStart} onAyah={(x) => setMenu({ s: x.s, a: x.a })} picked={picked} onTap={picked ? tapPick : undefined} />
             </motion.div>
           </AnimatePresence>
         )}
       </div>
 
       <AnimatePresence>{rc.active && <ReciteDock key="dock" onSettings={() => setSheet(true)} />}</AnimatePresence>
-      {!rc.active && !mode && <div className="mu-hint"><Pointer size={13} /> اضغط مطوّل على أي آية: <b>تفسير</b> · <b>مشاركة</b> · <b>تكرار</b></div>}
-      {!rc.active && (
+      {picked && (
+        <motion.div className="pick-bar" initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
+          <span className="col" style={{ flex: 1, gap: 0 }}><b>{picked.length ? `${ar(picked.length)} ${picked.length > 2 && picked.length < 11 ? 'آيات مختارة' : 'آية مختارة'}` : 'اختار آيات'}</b><span className="xs" style={{ opacity: .85 }}>اضغط على أي آية لإضافتها أو شيلها</span></span>
+          <button style={{ background: '#fff', color: '#1F4FA8' }} disabled={!picked.length} onClick={() => { setShareK({ k: picked[0], keys: picked }); setPicked(null); }}>شارك</button>
+          <button style={{ background: 'rgba(255,255,255,.18)', color: '#fff' }} onClick={() => setPicked(null)}>إلغاء</button>
+        </motion.div>
+      )}
+      {!picked && !rc.active && !mode && <div className="mu-hint"><Pointer size={13} /> اضغط مطوّل على أي آية: <b>تفسير</b> · <b>مشاركة</b> · <b>تكرار</b></div>}
+      {!picked && !rc.active && (
         <div style={{ position: 'relative', width: '100%', maxWidth: 500 }}>
           <AnimatePresence>{tip && (
             <motion.button className="rc-tip" onClick={listen} initial={{ opacity: 0, y: 10, scale: .9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10 }} transition={{ delay: 1, type: 'spring' }}>
@@ -220,9 +231,9 @@ export default function MushafReader({ page: initial, mode }) {
       <AnimatePresence>
         {startSheet && <StartSheet key="ss" onClose={() => setStartSheet(false)} onStart={begin} pageLabel={'من أول صفحة ' + ar(page)} />}
         {sheet && <ReciteSheet key="rs" onClose={() => setSheet(false)} page={page} pageAyahs={data?.pages[page]} juzRange={juzRange} />}
-        {menu && <AyahMenu key="am" k={menu} segStart={segStart} onSegStart={setSegStart} pageRange={pageRange} onClose={() => setMenu(null)} onTafsir={setTafsirK} onShare={(k) => setShareK({ k })} />}
+        {menu && <AyahMenu key="am" k={menu} segStart={segStart} onSegStart={setSegStart} pageRange={pageRange} onClose={() => setMenu(null)} onTafsir={setTafsirK} onShare={(k) => setShareK({ k })} onPick={(k) => { setPicked([k]); toast('اضغط على الآيات اللي عايز تضيفها'); }} />}
         {tafsirK && <TafsirSheet key="tf" k={tafsirK} getAyah={getAyah} onShare={(k, t) => { setTafsirK(null); setShareK({ k, t }); }} onClose={() => setTafsirK(null)} />}
-        {shareK && <ShareSheet key="sh" k={shareK.k} tafsir={shareK.t} getAyah={getAyah} onClose={() => setShareK(null)} />}
+        {shareK && <ShareSheet key="sh" k={shareK.k} keys={shareK.keys} tafsir={shareK.t} getAyah={getAyah} onClose={() => setShareK(null)} />}
       </AnimatePresence>
     </div>
   );

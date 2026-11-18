@@ -182,7 +182,7 @@ export function ReciteSheet({ onClose, page, pageAyahs, juzRange }) {
 }
 
 // ——— قائمة الآية (ضغط مطوّل) ———
-export function AyahMenu({ k, segStart, onSegStart, pageRange, onClose, onTafsir, onShare }) {
+export function AyahMenu({ k, segStart, onSegStart, pageRange, onClose, onTafsir, onShare, onPick }) {
   const o = useOpts();
   const sname = plain(SURAHS[k.s - 1].name);
   const times = o.range;
@@ -199,6 +199,7 @@ export function AyahMenu({ k, segStart, onSegStart, pageRange, onClose, onTafsir
           <button className="rc-act" onClick={() => { onClose(); onTafsir?.(k); }}><BookOpenText size={19} /><span><b>التفسير</b><small>ومعاني الكلمات</small></span></button>
           <button className="rc-act" onClick={() => { onClose(); onShare?.(k); }}><Share2 size={19} /><span><b>شارك كصورة</b><small>بتصميم مميز</small></span></button>
         </div>
+        <button className="rc-act" onClick={() => { onClose(); onPick?.(k); }}><ListMusic size={19} /><span><b>اختار آيات للمشاركة</b><small>اضغط على الآيات اللي عايزها وتتعمل في صورة واحدة</small></span></button>
         <button className="rc-act" onClick={() => act(() => start(k))}><Play size={19} /><span><b>استمع من هنا</b><small>وكمّل للي بعدها</small></span></button>
         <button className="rc-act" onClick={() => act(() => start(k, { from: k, to: k, times: times || 0 }))}><Repeat1 size={19} /><span><b>كرّر الآية دي</b><small>{timesAr(times)} — غيّر العدد من إعدادات التلاوة</small></span></button>
         <button className="rc-act" onClick={() => act(() => { onSegStart(k); toast('اضغط مطوّل على آخر آية في المقطع'); })}><ListMusic size={19} /><span><b>حدّد مقطع يبدأ من هنا</b><small>بعدها اضغط مطوّل على آية النهاية</small></span></button>

@@ -4,7 +4,7 @@ import logoUrl from '../assets/logo.webp';
 import { SURAHS } from './quran.js';
 import { ar } from './arabic.js';
 import { SITE } from './update.js';
-import { ART } from './ayahArt.js';
+import { ART, refText } from './ayahArt.js';
 export { ART };
 
 export const SIZES = { post: [1080, 1350, 'منشور'], story: [1080, 1920, 'ستوري'], square: [1080, 1080, 'مربع'] };
@@ -165,7 +165,7 @@ export async function drawAyahCard({ ayahs, style = 'mihrab', size = 'post', taf
 
   // المرجع بين نجمتين
   const ry = bottom + 38;
-  const ref = first.a === last.a ? `${plain(sname)} — الآية ${ar(first.a)}` : `${plain(sname)} — الآيات ${ar(first.a)}–${ar(last.a)}`;
+  const ref = refText(ayahs);
   ctx.font = '400 30px "Amiri"'; const rw = ctx.measureText(ref).width;
   ctx.fillStyle = S.red || S.accent; ctx.fillText(ref, W / 2, ry);
   ctx.strokeStyle = S.accent; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(W / 2 - rw / 2 - 100, ry - 10); ctx.lineTo(W / 2 - rw / 2 - 28, ry - 10); ctx.moveTo(W / 2 + rw / 2 + 28, ry - 10); ctx.lineTo(W / 2 + rw / 2 + 100, ry - 10); ctx.stroke();
