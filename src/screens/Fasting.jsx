@@ -188,7 +188,7 @@ function MonthCal({ fasts, now }) {
     <section className="card col" style={{ gap: 10 }}>
       <div className="between">
         <button className="icon-btn" style={{ width: 36, height: 36 }} aria-label="الشهر السابق" onClick={() => setOff(off - 1)}><ChevronRight size={16} /></button>
-        <div className="center"><b>{new Intl.DateTimeFormat('ar-EG', { month: 'long', year: 'numeric' }).format(base)}</b><div className="xs muted">{count ? `صمت ${daysAr(count)} الشهر ده` : 'لسه ماسجّلتش صيام الشهر ده'}{year ? ` — ${daysAr(year)} في ${ar(now.getFullYear())}` : ''}</div></div>
+        <div className="center" style={{ flex: 1, minWidth: 0 }}><b>{new Intl.DateTimeFormat('ar-EG', { month: 'long', year: 'numeric' }).format(base)}</b><div className="xs muted">{count ? `صمت ${daysAr(count)} الشهر ده` : 'لسه ماسجّلتش صيام الشهر ده'}{year ? ` — ${daysAr(year)} في ${ar(now.getFullYear())}` : ''}</div></div>
         <button className="icon-btn" style={{ width: 36, height: 36 }} aria-label="الشهر التالي" disabled={off >= 0} onClick={() => setOff(off + 1)}><ChevronLeft size={16} /></button>
       </div>
       <div className="fs-cal">

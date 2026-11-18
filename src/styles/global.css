@@ -18,7 +18,14 @@ button { cursor: pointer; }
 a { color: var(--acc); }
 :focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
 
-.app { max-width: 520px; margin: 0 auto; min-height: 100%; position: relative; }
+.app { max-width: 520px; margin: 0 auto; min-height: 100%; position: relative; width: 100%; overflow-x: clip; }
+/* منع التمرير الأفقي والاهتزاز على كل الموبايلات، حتى مع تكبير الخط من إعدادات الموبايل */
+html, body { max-width: 100%; overflow-x: clip; overscroll-behavior-x: none; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+#root { max-width: 100%; overflow-x: clip; }
+input, textarea, select { min-width: 0; max-width: 100%; }
+.row > *, .between > *, .col > * { min-width: 0; }
+img, svg, video, canvas { max-width: 100%; }
+p, h1, h2, h3, .small, .xs { overflow-wrap: anywhere; }
 .screen { padding: calc(env(safe-area-inset-top) + 16px) 18px calc(env(safe-area-inset-bottom) + 110px); display: flex; flex-direction: column; gap: 16px; min-height: 100dvh; }
 .screen.no-nav { padding-bottom: calc(env(safe-area-inset-bottom) + 24px); }
 
@@ -74,6 +81,7 @@ a { color: var(--acc); }
 .switch[aria-checked='true'] { background: var(--acc); }
 .switch[aria-checked='true']::after { right: 25px; background: var(--onAcc); }
 .set-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; }
+.set-row > :first-child { flex: 1; min-width: 0; }
 .set-row + .set-row { border-top: 1px solid var(--line); }
 select.sel, input.inp { min-height: 44px; border-radius: 12px; border: 1px solid var(--line); background: var(--surf2); padding: 0 12px; color: var(--text); }
 input[type=range] { accent-color: var(--acc); }
