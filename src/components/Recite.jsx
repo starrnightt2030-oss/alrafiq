@@ -1,7 +1,7 @@
 // واجهة التلاوة: شريط التشغيل العائم، لوح الإعدادات والقرّاء والتحميل، وقائمة الآية بالضغط المطوّل
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Play, Pause, SkipForward, SkipBack, X, SlidersHorizontal, Repeat, Repeat1, Download, Check, Trash2, Headphones, Flag, ListMusic, Loader2, CircleStop } from 'lucide-react';
+import { Play, Pause, SkipForward, SkipBack, X, SlidersHorizontal, Repeat, Repeat1, Download, Check, Trash2, Headphones, Flag, ListMusic, Loader2, CircleStop, BookOpenText, Share2 } from 'lucide-react';
 import Sheet from './Sheet.jsx';
 import { useStore } from '../store.js';
 import { useRecite, toggle, skip, stop, start, RECITERS, reciterOf, DEFAULTS, HL, setReciteOpt, download, isDownloaded, clearDownloads, surahKeys, ayahList } from '../lib/recite.js';
@@ -182,7 +182,7 @@ export function ReciteSheet({ onClose, page, pageAyahs, juzRange }) {
 }
 
 // ——— قائمة الآية (ضغط مطوّل) ———
-export function AyahMenu({ k, segStart, onSegStart, pageRange, onClose }) {
+export function AyahMenu({ k, segStart, onSegStart, pageRange, onClose, onTafsir, onShare }) {
   const o = useOpts();
   const sname = plain(SURAHS[k.s - 1].name);
   const times = o.range;
@@ -195,6 +195,10 @@ export function AyahMenu({ k, segStart, onSegStart, pageRange, onClose }) {
         {validEnd ? (
           <button className="rc-act hl" onClick={() => act(() => { start(segStart, { from: segStart, to: k, times }); onSegStart(null); })}><Flag size={19} /><span><b>انهِ المقطع هنا وابدأ التكرار</b><small>من آية {ar(segStart.a)} لحد آية {ar(k.a)} — {timesAr(times)}</small></span></button>
         ) : null}
+        <div className="grid2">
+          <button className="rc-act" onClick={() => { onClose(); onTafsir?.(k); }}><BookOpenText size={19} /><span><b>التفسير</b><small>ومعاني الكلمات</small></span></button>
+          <button className="rc-act" onClick={() => { onClose(); onShare?.(k); }}><Share2 size={19} /><span><b>شارك كصورة</b><small>بتصميم مميز</small></span></button>
+        </div>
         <button className="rc-act" onClick={() => act(() => start(k))}><Play size={19} /><span><b>استمع من هنا</b><small>وكمّل للي بعدها</small></span></button>
         <button className="rc-act" onClick={() => act(() => start(k, { from: k, to: k, times: times || 0 }))}><Repeat1 size={19} /><span><b>كرّر الآية دي</b><small>{timesAr(times)} — غيّر العدد من إعدادات التلاوة</small></span></button>
         <button className="rc-act" onClick={() => act(() => { onSegStart(k); toast('اضغط مطوّل على آخر آية في المقطع'); })}><ListMusic size={19} /><span><b>حدّد مقطع يبدأ من هنا</b><small>بعدها اضغط مطوّل على آية النهاية</small></span></button>

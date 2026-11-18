@@ -12,6 +12,7 @@ import { toast } from '../components/ui.jsx';
 import { sound } from '../lib/sound.js';
 import { Eye, EyeOff, Headphones } from 'lucide-react';
 import { ReciteDock, ReciteSheet, AyahMenu, StartSheet, Avatar } from '../components/Recite.jsx';
+import { TafsirSheet, ShareSheet } from '../components/AyahTools.jsx';
 import { useRecite, start as reciteStart, stop as reciteStop, DEFAULTS, HL, reciterOf } from '../lib/recite.js';
 
 function SuraHead({ name }) {
@@ -91,6 +92,8 @@ export default function MushafReader({ page: initial, mode }) {
   const [sheet, setSheet] = useState(false);
   const [menu, setMenu] = useState(null);
   const [segStart, setSegStart] = useState(null);
+  const [tafsirK, setTafsirK] = useState(null);
+  const [shareK, setShareK] = useState(null);
   useEffect(() => () => reciteStop(), []);
   useEffect(() => { if (!rc.range) return; setSegStart(null); }, [rc.range]);
   const hifzPage = useStore((s) => s.hifz.pages[page]);
@@ -121,6 +124,7 @@ export default function MushafReader({ page: initial, mode }) {
   useEffect(() => { if (!rc.key || !follow) return; const p = pageOf(rc.key); if (p && p !== page) { setDir(p > page ? 1 : -1); setPage(p); } }, [rc.key?.s, rc.key?.a]); // eslint-disable-line
   const pageRange = data && data.pages[page]?.length ? (() => { const a = data.pages[page]; return { from: { s: a[0].s, a: a[0].a }, to: { s: a[a.length - 1].s, a: a[a.length - 1].a } }; })() : null;
   const juzRange = (() => { if (!data) return null; const jj = juzAt(page); const all = JUZ_LIST; const i = all.findIndex((x) => x.juz === jj.juz); const p1 = jj.page, p2 = i < all.length - 1 ? all[i + 1].page - 1 : TOTAL_PAGES; const f = data.pages[p1][0]; const l = data.pages[p2][data.pages[p2].length - 1]; return { juz: jj.juz, from: { s: f.s, a: f.a }, to: { s: l.s, a: l.a } }; })();
+  const getAyah = (k) => { if (!data || !k) return null; const p = pageOf(k); return p ? data.pages[p].find((x) => x.s === k.s && x.a === k.a) : null; };
   const listen = () => { closeTip(); if (rc.active) { setSheet(true); return; } setStartSheet(true); vibrate(8); };
   const begin = () => { if (pageRange) { reciteStart(pageRange.from); vibrate(10); } };
 
@@ -202,7 +206,9 @@ export default function MushafReader({ page: initial, mode }) {
       <AnimatePresence>
         {startSheet && <StartSheet key="ss" onClose={() => setStartSheet(false)} onStart={begin} pageLabel={'من أول صفحة ' + ar(page)} />}
         {sheet && <ReciteSheet key="rs" onClose={() => setSheet(false)} page={page} pageAyahs={data?.pages[page]} juzRange={juzRange} />}
-        {menu && <AyahMenu key="am" k={menu} segStart={segStart} onSegStart={setSegStart} pageRange={pageRange} onClose={() => setMenu(null)} />}
+        {menu && <AyahMenu key="am" k={menu} segStart={segStart} onSegStart={setSegStart} pageRange={pageRange} onClose={() => setMenu(null)} onTafsir={setTafsirK} onShare={(k) => setShareK({ k })} />}
+        {tafsirK && <TafsirSheet key="tf" k={tafsirK} getAyah={getAyah} onShare={(k, t) => { setTafsirK(null); setShareK({ k, t }); }} onClose={() => setTafsirK(null)} />}
+        {shareK && <ShareSheet key="sh" k={shareK.k} tafsir={shareK.t} getAyah={getAyah} onClose={() => setShareK(null)} />}
       </AnimatePresence>
     </div>
   );
