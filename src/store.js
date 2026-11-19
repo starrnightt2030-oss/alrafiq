@@ -34,6 +34,8 @@ export const useStore = create(
       points: 0,
       quran: { lastPage: 1, lastAt: null, bookmarks: [] },
       favDuas: [],
+      nawawi: [],
+      zakat: null,
       firstDay: null,
       challenge: { i: 0, start: null, done: [] },
       stories: { last: null, pos: {}, marks: [], done: [] },
@@ -107,6 +109,8 @@ export const useStore = create(
         challenge: { i: s.challenge.i + 1, start: null, done: [...s.challenge.done, { id, at: todayKey() }] },
       })),
 
+      toggleNawawi: (n) => set((s) => { const l = s.nawawi || []; return { nawawi: l.includes(n) ? l.filter((x) => x !== n) : [...l, n] }; }),
+      setZakat: (z) => set({ zakat: z }),
       toggleFavDua: (id) => set((s) => ({ favDuas: s.favDuas.includes(id) ? s.favDuas.filter((x) => x !== id) : [...s.favDuas, id] })),
 
       setSetting: (key, value) => set((s) => ({ settings: { ...s.settings, [key]: value } })),

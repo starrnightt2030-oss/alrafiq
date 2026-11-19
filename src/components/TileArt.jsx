@@ -136,6 +136,28 @@ const ART = {
     {[[40, 80], [52, 76], [64, 77], [76, 80], [58, 84]].map(([x, y], i) => <ellipse key={i} cx={x} cy={y} rx="9" ry="5.5" fill={i % 2 ? '#8B4A1C' : '#A65A24'} transform={`rotate(${i * 25 - 40} ${x} ${y})`} />)}
     <path d="M30 96h60" stroke={`url(#${p}g)`} strokeWidth="2.5" />
   </>),
+  asmaa: (p) => (<>
+    <circle cx="60" cy="56" r="46" fill={`url(#${p}r)`} />
+    <circle cx="60" cy="58" r="38" fill="none" stroke={`url(#${p}g)`} strokeWidth="4" />
+    <circle cx="60" cy="58" r="30" fill="none" stroke="#fff" strokeWidth="1.5" strokeDasharray="3 4" opacity=".8" />
+    <text x="60" y="72" textAnchor="middle" fontFamily="Amiri, serif" fontSize="34" fontWeight="700" fill={`url(#${p}w)`}>الله</text>
+    <Spark x={98} y={18} s={6} f="#fff" /><Spark x={20} y={24} s={5} f="#FFF0BE" /><Spark x={100} y={98} s={4} f="#FFF0BE" />
+  </>),
+  nawawi: (p) => (<>
+    <circle cx="60" cy="56" r="46" fill={`url(#${p}r)`} />
+    <path d="M22 34Q40 26 58 34V96Q40 88 22 96Z" fill={`url(#${p}w)`} />
+    <path d="M62 34Q80 26 98 34V96Q80 88 62 96Z" fill="#fff" opacity=".85" />
+    {[48, 60, 72].map((y) => <path key={y} d={`M30 ${y}h20M70 ${y}h20`} stroke={`url(#${p}g)`} strokeWidth="3" strokeLinecap="round" />)}
+    <path d="M60 30v70" stroke={`url(#${p}g)`} strokeWidth="3" />
+    <text x="60" y="22" textAnchor="middle" fontFamily="Amiri, serif" fontSize="18" fontWeight="700" fill={`url(#${p}g)`}>٤٠</text>
+  </>),
+  zakat: (p) => (<>
+    <circle cx="60" cy="56" r="46" fill={`url(#${p}r)`} />
+    {[[40, 88], [60, 92], [80, 88]].map(([x, y], i) => [0, 1, 2, 3].map((k) => <ellipse key={i + '-' + k} cx={x} cy={y - k * 8} rx="16" ry="5" fill={k === 3 ? `url(#${p}g)` : '#E8BE5C'} stroke="#B07F22" strokeWidth="1" />))}
+    <path d="M60 18c-10 0-18 8-18 18s8 18 18 18 18-8 18-18-8-18-18-18z" fill={`url(#${p}w)`} />
+    <text x="60" y="44" textAnchor="middle" fontFamily="sans-serif" fontSize="16" fontWeight="800" fill="#B07F22">٪</text>
+    <Spark x={98} y={24} s={6} f="#fff" /><Spark x={22} y={30} s={4} f="#FFF0BE" />
+  </>),
   prayer: (p) => (<>
     <circle cx="60" cy="56" r="46" fill={`url(#${p}r)`} />
     <path d="M30 10a14 14 0 1 0 12 22a11 11 0 1 1 -12-22z" fill={`url(#${p}g)`} />
