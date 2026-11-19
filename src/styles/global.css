@@ -228,6 +228,8 @@ input[type=range] { accent-color: var(--acc); }
 .hand-btn { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 22px; border: 1px dashed var(--acc); background: color-mix(in srgb, var(--acc) 8%, var(--surf)); color: var(--text); font: inherit; }
 .upd-notes { margin: 0; padding: 12px 14px 12px 12px; list-style: none; display: flex; flex-direction: column; gap: 8px; border-radius: 16px; background: var(--surf); border: 1px solid var(--line); font-size: 13px; line-height: 1.8; }
 .upd-notes li { position: relative; padding-right: 18px; }
+.upd-bar { height: 14px; border-radius: 8px; background: var(--surf); border: 1px solid var(--line); overflow: hidden; }
+.upd-bar i { display: block; height: 100%; border-radius: 8px; background: linear-gradient(90deg, var(--acc), var(--acc2)); box-shadow: 0 0 12px -2px var(--acc); }
 .upd-notes li::before { content: '✦'; position: absolute; right: 0; color: var(--acc); }
 .spin { animation: spin 1s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }
 

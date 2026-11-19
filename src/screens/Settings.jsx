@@ -6,7 +6,7 @@ import { THEMES, THEME_ORDER } from '../themes.js';
 import { APP } from '../config.js';
 import { sound } from '../lib/sound.js';
 import { askPermission, scheduleReminders } from '../lib/notify.js';
-import { checkForUpdate, applyUpdate } from '../lib/update.js';
+import { checkForUpdate, applyUpdate, openUpdate } from '../lib/update.js';
 import { ar, arNum, daysAr, pagesAr } from '../lib/arabic.js';
 import { Switch, Credit, toast } from '../components/ui.jsx';
 import logo from '../assets/logo.webp';
@@ -137,7 +137,7 @@ export default function Settings() {
           <div className="col" style={{ width: '100%', gap: 8 }}>
             <div className="small accent">يتوفر إصدار جديد: v{upd.latest}</div>
             {upd.notes?.length > 0 && <ul className="xs muted" style={{ textAlign: 'right', margin: 0, lineHeight: 1.9 }}>{upd.notes.map((n, i) => <li key={i}>{n}</li>)}</ul>}
-            <button className="btn" onClick={() => applyUpdate(upd.latest)}><Download size={18} />تحديث الآن</button>
+            <button className="btn" onClick={() => (isNative ? openUpdate(upd) : applyUpdate(upd.latest))}><Download size={18} />تحديث الآن</button>
           </div>
         ) : (
           <button className="btn ghost" style={{ width: '100%' }} onClick={check} disabled={upd.state === 'checking'}>
