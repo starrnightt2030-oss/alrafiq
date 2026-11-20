@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useStore } from '../store.js';
 import { motion } from 'framer-motion';
 import { APP } from '../config.js';
 import { sound } from '../lib/sound.js';
@@ -9,12 +10,38 @@ import logo from '../assets/logo.webp';
 const STAR = 'M100 10 L127 64 L190 73 L136 100 L190 127 L127 136 L100 190 L73 136 L10 127 L64 100 L10 73 L73 64 Z';
 const STAR2 = 'M100 10 L120 80 L190 100 L120 120 L100 190 L80 120 L10 100 L80 80 Z';
 
+// آية الافتتاح ﴿فاذكروني أذكركم﴾ (البقرة ١٥٢) بصوت الشيخ محمد صديق المنشاوي: تُتلى مرة واحدة والكلمات تنكتب معها
+const WORDS = ['فَٱذۡكُرُونِيٓ', 'أَذۡكُرۡكُمۡ', 'وَٱشۡكُرُواْ', 'لِي', 'وَلَا', 'تَكۡفُرُونِ'];
+const LOCAL = new URL('audio/intro/2-152.mp3', document.baseURI).href;
+const LEN = WORDS.map((w) => w.replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, '').length + 2);
+const TOTAL = LEN.reduce((a, b) => a + b, 0);
+const STARTS = LEN.map((_, i) => 0.04 + 0.86 * LEN.slice(0, i).reduce((a, b) => a + b, 0) / TOTAL);
+
 export default function Splash({ onDone }) {
-  useEffect(() => { sound.intro(); const t = setTimeout(onDone, 4300); return () => clearTimeout(t); }, [onDone]);
+  const withAyah = useStore((s) => s.settings.openAyah) !== false;
+  const [shown, setShown] = useState(0);
+  const ended = useRef(false);
+  const finish = () => { if (!ended.current) { ended.current = true; onDone(); } };
+  useEffect(() => {
+    sound.intro();
+    if (!withAyah) { const t = setTimeout(finish, 4300); return () => clearTimeout(t); }
+    const timers = []; let a = null, fell = false;
+    // بدون صوت (ملف ناقص أو المتصفح منع التشغيل): الكلمات تظهر لوحدها
+    const silent = () => { if (fell) return; fell = true; WORDS.forEach((_, i) => timers.push(setTimeout(() => setShown(i + 1), 2400 + i * 420))); timers.push(setTimeout(finish, 6200)); };
+    timers.push(setTimeout(() => {
+      a = new Audio(LOCAL);
+      a.ontimeupdate = () => { if (a.duration) { const p = a.currentTime / a.duration; setShown(STARTS.filter((x) => p >= x).length); } };
+      a.onended = () => { setShown(WORDS.length); timers.push(setTimeout(finish, 1400)); };
+      a.onerror = silent;
+      a.play().catch(silent);
+    }, 2000));
+    timers.push(setTimeout(finish, 18000));
+    return () => { timers.forEach(clearTimeout); if (a) { a.onerror = a.onended = a.ontimeupdate = null; a.pause(); } };
+  }, []); // eslint-disable-line
   const motes = Array.from({ length: 26 }, (_, i) => i);
   const rays = Array.from({ length: 12 }, (_, i) => i);
   return (
-    <motion.div onClick={onDone} role="dialog" aria-label="مقدمة تطبيق الرفيق"
+    <motion.div onClick={finish} role="dialog" aria-label="مقدمة تطبيق الرفيق"
       initial={{ opacity: 1 }} exit={{ opacity: 0, scale: 1.06, filter: 'blur(6px)' }} transition={{ duration: .6, ease: 'easeInOut' }}
       style={{ position: 'fixed', inset: 0, zIndex: 100, overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#F5F0E1', background: 'radial-gradient(120% 80% at 50% 38%, #0F4A3D 0%, #0A231E 45%, #04100D 100%)', perspective: 900 }}>
 
@@ -62,12 +89,22 @@ export default function Splash({ onDone }) {
         <motion.div initial={{ opacity: 0, y: 12, letterSpacing: '6px' }} animate={{ opacity: 1, y: 0, letterSpacing: '0px' }} transition={{ delay: 1.9, duration: .8 }}
           className="amiri" style={{ fontSize: 34, fontWeight: 700, color: '#F0D894', textShadow: '0 0 24px rgba(217,181,90,.45)' }}>{APP.name}</motion.div>
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: .9 }} transition={{ delay: 2.3, duration: .6 }} style={{ fontSize: 14, color: '#E9DDBB', marginTop: 2 }}>{APP.tagline}</motion.div>
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 2.7, duration: .7 }} className="amiri" style={{ marginTop: 12, fontSize: 17, color: '#D9B55A' }}>﴿ أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ ﴾</motion.div>
+        {!withAyah && <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 2.7, duration: .7 }} className="amiri" style={{ marginTop: 12, fontSize: 17, color: '#D9B55A' }}>﴿ أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ ﴾</motion.div>}
+        {withAyah && (
+          <div className="hafs" dir="rtl" aria-label="فاذكروني أذكركم واشكروا لي ولا تكفرون" style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0 9px', maxWidth: 'min(86vw, 380px)', minHeight: '2.2em', fontSize: 'clamp(23px, 6.6vw, 30px)', lineHeight: 1.9 }}>
+            <motion.span initial={{ opacity: 0 }} animate={{ opacity: shown ? 1 : 0 }} style={{ color: '#D9B55A' }}>﴿</motion.span>
+            {WORDS.map((w, i) => (
+              <motion.span key={i} initial={{ opacity: 0, y: 12, filter: 'blur(8px)' }} animate={i < shown ? { opacity: 1, y: 0, filter: 'blur(0px)', color: ['#FFF6D6', '#F5F0E1'], textShadow: ['0 0 24px rgba(240,216,148,.95)', '0 0 8px rgba(240,216,148,.25)'] } : {}} transition={{ duration: .7, ease: 'easeOut' }}>{w}</motion.span>
+            ))}
+            <motion.span initial={{ opacity: 0 }} animate={{ opacity: shown >= WORDS.length ? 1 : 0 }} style={{ color: '#D9B55A' }}>﴾</motion.span>
+          </div>
+        )}
+        {withAyah && <motion.div initial={{ opacity: 0 }} animate={{ opacity: shown ? .8 : 0 }} transition={{ duration: .8 }} style={{ fontSize: 11.5, color: '#A9C2B7', marginTop: 2 }}>البقرة ١٥٢ — بصوت الشيخ محمد صديق المنشاوي</motion.div>}
       </div>
 
       {/* شريط التحميل والمطوّر */}
       <motion.div aria-hidden="true" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }} style={{ position: 'absolute', bottom: 'calc(env(safe-area-inset-bottom) + 92px)', width: 120, height: 3, borderRadius: 3, background: 'rgba(240,216,148,.18)', overflow: 'hidden' }}>
-        <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ delay: 1, duration: 3, ease: 'easeInOut' }} style={{ height: '100%', background: '#D9B55A', transformOrigin: 'right' }} />
+        <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ delay: 1, duration: withAyah ? 9 : 3, ease: 'easeInOut' }} style={{ height: '100%', background: '#D9B55A', transformOrigin: 'right' }} />
       </motion.div>
       <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: .9, y: 0 }} transition={{ delay: 2.9 }}
         style={{ position: 'absolute', bottom: 'calc(env(safe-area-inset-bottom) + 26px)', textAlign: 'center', fontSize: 11.5, color: '#A9C2B7', lineHeight: 1.8 }}>
