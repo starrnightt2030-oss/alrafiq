@@ -34,6 +34,7 @@ import Settings from './screens/Settings.jsx';
 import Soon from './screens/Soon.jsx';
 import Duas from './screens/Duas.jsx';
 import Hifz from './screens/Hifz.jsx';
+import Hafiz from './screens/Hafiz.jsx';
 import Report from './screens/Report.jsx';
 import Challenges from './screens/Challenges.jsx';
 import { StoriesHome, StoryList } from './screens/Stories.jsx';
@@ -68,6 +69,7 @@ function Screen({ route }) {
     case 'wird': return <Wird key={b || 'w'} id={b} />;
     case 'quran': return b ? <MushafReader key={'m' + (route[2] || '')} page={+b} mode={route[2]} /> : <QuranIndex />;
     case 'hifz': return <Hifz />;
+    case 'hafiz': return <Hafiz key={route.join('/')} sub={b} arg={route[2]} arg2={route[3]} />;
     case 'asmaa': return <Asmaa />;
     case 'nawawi': return <Nawawi key={b || 'l'} n={b} />;
     case 'zakat': return <Zakat />;
@@ -80,7 +82,7 @@ function Screen({ route }) {
   }
 }
 
-const FULL = (r) => (r[0] === 'azkar' && r[1]) || ['hisn', 'wird', 'ruqyah', 'duas', 'report', 'challenges', 'stories', 'story', 'hifz', 'inbox', 'quiz', 'qibla', 'fasting', 'rufaqa', 'badges', 'asmaa', 'nawawi', 'zakat', 'library', 'manasik'].includes(r[0]) || (r[0] === 'quran' && r[1]);
+const FULL = (r) => (r[0] === 'azkar' && r[1]) || ['hisn', 'wird', 'ruqyah', 'duas', 'report', 'challenges', 'stories', 'story', 'hifz', 'hafiz', 'inbox', 'quiz', 'qibla', 'fasting', 'rufaqa', 'badges', 'asmaa', 'nawawi', 'zakat', 'library', 'manasik'].includes(r[0]) || (r[0] === 'quran' && r[1]);
 
 export default function App() {
   const theme = useStore((s) => s.settings.theme);

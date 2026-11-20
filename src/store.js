@@ -42,6 +42,8 @@ export const useStore = create(
       challenge: { i: 0, start: null, done: [] },
       stories: { last: null, pos: {}, marks: [], done: [] },
       hifz: { plan: { dir: 'back', daily: 1, started: null }, pages: {}, log: {} },
+      // الحفظ الذكي: نموذج ذاكرة لكل آية + سجل الجلسات والاختبارات والشهادات
+      mem: { ayat: {}, sessions: [], tests: [], certs: [], prefs: { reciter: 'husary-m', reps: 1, strict: 0.9 } },
       inbox: [],
       sent: {},
       quiz: { seen: {}, history: [], best: 0, names: [], current: null },
@@ -85,6 +87,12 @@ export const useStore = create(
         return { points: s.points + pts, hifz: { ...s.hifz, pages, log: kind ? { ...s.hifz.log, [k]: lg } : s.hifz.log } };
       }),
 
+      // تسجيل نتيجة تسميع آية في نموذج الذاكرة (m = الحالة الجديدة من review())
+      memAyah: (k, m) => set((s) => ({ mem: { ...s.mem, ayat: { ...s.mem.ayat, [k]: m } } })),
+      memMany: (upd) => set((s) => ({ mem: { ...s.mem, ayat: { ...s.mem.ayat, ...upd } } })),
+      memLog: (kind, rec) => set((s) => ({ points: s.points + (rec.pts || 0), mem: { ...s.mem, [kind]: [...(s.mem[kind] || []), { at: Date.now(), ...rec }].slice(-60) } })),
+      memPrefs: (p) => set((s) => ({ mem: { ...s.mem, prefs: { ...s.mem.prefs, ...p } } })),
+      memCert: (c) => set((s) => ({ mem: { ...s.mem, certs: [...(s.mem.certs || []).filter((x) => x.id !== c.id), { at: Date.now(), ...c }] } })),
       saveStoryPos: (id, pct) => set((s) => ({ stories: { ...s.stories, last: id, pos: { ...s.stories.pos, [id]: pct } } })),
       toggleStoryMark: (id) => set((s) => ({ stories: { ...s.stories, marks: s.stories.marks.includes(id) ? s.stories.marks.filter((x) => x !== id) : [...s.stories.marks, id] } })),
       finishStory: (id) => set((s) => s.stories.done.includes(id) ? {} : ({ points: s.points + 20, stories: { ...s.stories, done: [...s.stories.done, id] } })),
@@ -155,6 +163,7 @@ export const useStore = create(
         quran: { ...current.quran, ...(persisted?.quran || {}) },
         stories: { ...current.stories, ...(persisted?.stories || {}) },
         hifz: { ...current.hifz, ...(persisted?.hifz || {}), plan: { ...current.hifz.plan, ...(persisted?.hifz?.plan || {}) } },
+        mem: { ...current.mem, ...(persisted?.mem || {}), prefs: { ...current.mem.prefs, ...(persisted?.mem?.prefs || {}) } },
         challenge: { ...current.challenge, ...(persisted?.challenge || {}) },
         quiz: { ...current.quiz, ...(persisted?.quiz || {}) },
         fasts: { ...(persisted?.fasts || {}) },
