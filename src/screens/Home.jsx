@@ -39,12 +39,13 @@ export const TILES = {
   prayer: { to: '/prayer', label: 'مواقيت الصلاة', sub: 'وسجلّ صلواتك', c: ['#2A9D8F', '#145A52'] },
   badges: { to: '/badges', label: 'أوسمتي', sub: 'الإنجازات والدرجات', c: ['#C98E1E', '#6B3F05'] },
   rufaqa: { to: '/rufaqa', label: 'رفقاء الخير', sub: 'مجموعات العيلة والأصحاب', c: ['#E0507A', '#7A1E46'], wide: true },
+  library: { to: '/library', label: 'المكتبة الإسلامية', sub: 'أمهات كتب التراث', c: ['#8C5A1F', '#3E260C'] },
   asmaa: { to: '/asmaa', label: 'أسماء الله الحسنى', sub: 'الـ٩٩ اسمًا ومعانيها', c: ['#2B8C8C', '#0F4C52'] },
   nawawi: { to: '/nawawi', label: 'الأربعون النووية', sub: 'بالتخريج والفوائد', c: ['#B5793A', '#5E3510'] },
   zakat: { to: '/zakat', label: 'حاسبة الزكاة', sub: 'المال والذهب والتجارة', c: ['#3E9B5A', '#17502A'] },
   fasting: { to: '/fasting', label: 'الصيام ورمضان', sub: 'السنن والإمساكية والختمة', c: ['#7A3FB0', '#3A1460'] },
 };
-export const TILE_ORDER = ['azkar', 'quran', 'wird', 'hifz', 'quiz', 'stories', 'rufaqa', 'duas', 'ruqyah', 'challenges', 'report', 'qibla', 'prayer', 'fasting', 'asmaa', 'nawawi', 'zakat', 'badges'];
+export const TILE_ORDER = ['azkar', 'quran', 'wird', 'hifz', 'quiz', 'stories', 'rufaqa', 'duas', 'ruqyah', 'challenges', 'report', 'qibla', 'prayer', 'fasting', 'library', 'asmaa', 'nawawi', 'zakat', 'badges'];
 
 const surahOfPage = (p) => { let s = quranMeta.surahs[0]; for (const x of quranMeta.surahs) { if (x.page <= p) s = x; else break; } return s; };
 

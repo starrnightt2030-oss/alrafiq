@@ -136,6 +136,13 @@ const ART = {
     {[[40, 80], [52, 76], [64, 77], [76, 80], [58, 84]].map(([x, y], i) => <ellipse key={i} cx={x} cy={y} rx="9" ry="5.5" fill={i % 2 ? '#8B4A1C' : '#A65A24'} transform={`rotate(${i * 25 - 40} ${x} ${y})`} />)}
     <path d="M30 96h60" stroke={`url(#${p}g)`} strokeWidth="2.5" />
   </>),
+  library: (p) => (<>
+    <circle cx="60" cy="56" r="46" fill={`url(#${p}r)`} />
+    <rect x="22" y="92" width="76" height="6" rx="2" fill={`url(#${p}g)`} />
+    {[[26, 40, '#8C2F39'], [40, 34, '#1E6B52'], [54, 44, '#2B6A9E'], [68, 30, '#5B4FA8']].map(([x, h, c], i) => <g key={i}><rect x={x} y={92 - h - 18} width="12" height={h + 18} rx="2" fill={c} stroke="#F3E3B5" strokeWidth="1" /><rect x={x + 2} y={92 - h - 10} width="8" height="3" fill="#F3E3B5" opacity=".8" /></g>)}
+    <g transform="rotate(-14 90 70)"><rect x="82" y="40" width="12" height="52" rx="2" fill="#7A4E1D" stroke="#F3E3B5" strokeWidth="1" /><rect x="84" y="48" width="8" height="3" fill="#F3E3B5" opacity=".8" /></g>
+    <Spark x={98} y={20} s={6} f="#fff" /><Spark x={20} y={26} s={4} f="#FFF0BE" />
+  </>),
   asmaa: (p) => (<>
     <circle cx="60" cy="56" r="46" fill={`url(#${p}r)`} />
     <circle cx="60" cy="58" r="38" fill="none" stroke={`url(#${p}g)`} strokeWidth="4" />
