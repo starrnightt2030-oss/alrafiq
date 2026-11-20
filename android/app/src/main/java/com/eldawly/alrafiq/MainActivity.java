@@ -5,9 +5,14 @@ import android.webkit.WebSettings;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
+    static volatile boolean visible = false;
+    @Override public void onResume() { super.onResume(); visible = true; }
+    @Override public void onPause() { visible = false; super.onPause(); }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(WidgetPlugin.class);
+        registerPlugin(AdhanPlugin.class);
         super.onCreate(savedInstanceState);
         // تثبيت مقاس الواجهة: تكبير الخط من إعدادات الموبايل كان بيكبّر الصفحة ويخليها تتحرك يمين وشمال
         try {

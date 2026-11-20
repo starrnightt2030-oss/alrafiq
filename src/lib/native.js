@@ -1,5 +1,5 @@
 // تكامل تطبيق أندرويد (Capacitor): إشعارات محلية للأذان بصوته الكامل والأذكار ورسائل الرفيق — تعمل والتطبيق مغلق
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, registerPlugin } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { App as CapApp } from '@capacitor/app';
@@ -9,6 +9,30 @@ import { THEMES } from '../themes.js';
 import { sunnahOf, hijriParts } from './fasting.js';
 
 export const isNative = Capacitor.isNativePlatform();
+// الأذان الأصلي في أندرويد: منبّه دقيق يفتح شاشة الأذان فوق القفل ويشغّل الصوت لحد ما يخلص
+export const AdhanNative = registerPlugin('Adhan');
+const hm = (d) => d.toLocaleTimeString('ar-EG', { hour: 'numeric', minute: '2-digit' });
+function adhanItems(extra) {
+  const s = useStore.getState().settings; const items = [];
+  if (s.adhan.enabled) {
+    const place = resolveLocation(s.location); const now = new Date();
+    for (let d = 0; d < 7; d++) {
+      const day = new Date(now); day.setDate(day.getDate() + d);
+      timesFor(place, day).forEach((p) => { if (!p.info && s.adhan.prayers[p.key] && p.time > now) items.push({ at: p.time.getTime(), key: p.key, name: p.name, time: hm(p.time) }); });
+    }
+  }
+  if (extra) items.unshift(extra);
+  return items.slice(0, 60);
+}
+export async function syncAdhanNative(extra) {
+  if (!isNative) return;
+  const a = useStore.getState().settings.adhan;
+  try { await AdhanNative.schedule({ items: JSON.stringify(adhanItems(extra)), volume: a.volume, dua: a.dua !== false }); } catch (e) { console.warn('adhan native', e); }
+}
+// تجربة: شاشة الأذان بعد ١٠ ثواني (اقفل الموبايل وشوفها)
+export const testAdhanNative = () => syncAdhanNative({ at: Date.now() + 10000, key: 'dhuhr', name: 'الظهر (تجربة)', time: hm(new Date(Date.now() + 10000)) });
+export const adhanStatus = () => (isNative ? AdhanNative.status().catch(() => null) : Promise.resolve(null));
+export const openAdhanSettings = (what) => AdhanNative.openSettings({ what }).catch(() => {});
 
 const NUDGES = [
   ['تحدي الظهيرة', 'عندك ٥ دقايق؟ ١٠٠ «سبحان الله وبحمده» وتحطّ خطاياك ولو مثل زبد البحر.', '#/wird'],
@@ -32,6 +56,7 @@ const at = (base, hhmm) => { const [h, m] = hhmm.split(':').map(Number); const d
 
 export async function rescheduleNative() {
   if (!isNative) return;
+  syncAdhanNative();
   try {
     const perm = await LocalNotifications.checkPermissions();
     if (perm.display !== 'granted') { const r = await LocalNotifications.requestPermissions(); if (r.display !== 'granted') return; }
@@ -43,10 +68,6 @@ export async function rescheduleNative() {
     const now = new Date(); const list = [];
     for (let d = 0; d < 7; d++) {
       const day = new Date(now); day.setDate(day.getDate() + d);
-      if (s.adhan.enabled) timesFor(place, day).forEach((p, i) => {
-        if (p.info || !s.adhan.prayers[p.key] || p.time <= now) return;
-        list.push({ id: d * 100 + i, title: `حان الآن موعد أذان ${p.name}`, body: 'حيّ على الصلاة، حيّ على الفلاح — الرفيق', channelId: p.key === 'fajr' ? 'fajr' : 'adhan', schedule: { at: p.time, allowWhileIdle: true }, extra: { href: '#/prayer', adhan: p.key }, smallIcon: 'ic_stat_rafiq', iconColor: '#D9B55A' });
-      });
       if (s.reminders.enabled) {
         const a = AM[(d + now.getDate()) % AM.length], b = PM[(d + now.getDate()) % PM.length];
         const ta = at(day, s.reminders.morning), tb = at(day, s.reminders.evening);
@@ -72,6 +93,7 @@ export async function rescheduleNative() {
       }
     }
     if (list.length) await LocalNotifications.schedule({ notifications: list });
+    await syncAdhanNative();
   } catch (e) { console.warn('native notifications', e); }
 }
 

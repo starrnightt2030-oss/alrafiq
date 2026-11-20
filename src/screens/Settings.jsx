@@ -13,11 +13,29 @@ import logo from '../assets/logo.webp';
 import { playAdhan, stopAdhan, useAdhanState, MUEZZIN } from '../lib/adhan.js';
 import { FARD } from '../lib/stats.js';
 import { Megaphone, Square, Play, Smartphone } from 'lucide-react';
-import { isNative } from '../lib/native.js';
+import { isNative, testAdhanNative, adhanStatus, openAdhanSettings } from '../lib/native.js';
+import { useEffect } from 'react';
 import { APK_URL } from '../lib/update.js';
 import { CalendarHeart, DatabaseBackup, Upload, ShieldCheck } from 'lucide-react';
 import { exportBackup, readBackup, restoreBackup, summary } from '../lib/backup.js';
 import { useRef } from 'react';
+
+// شاشة الأذان فوق القفل (أندرويد): حالة الأذونات + تجربة بعد ١٠ ثواني
+function AdhanLock() {
+  const [st, setSt] = useState(null);
+  useEffect(() => { const f = () => adhanStatus().then(setSt); f(); const on = () => document.visibilityState === 'visible' && f(); document.addEventListener('visibilitychange', on); return () => document.removeEventListener('visibilitychange', on); }, []);
+  if (!isNative) return null;
+  const ok = st && st.fullScreen && st.exact;
+  return (
+    <div className="col" style={{ gap: 8, padding: '6px 0 10px' }}>
+      <span className="small" style={{ fontWeight: 700 }}>شاشة الأذان على الموبايل المقفول</span>
+      <span className="xs muted" style={{ lineHeight: 1.8 }}>{st == null ? '…' : ok ? 'جاهزة ✓ — مع دخول الوقت تنوّر الشاشة ويظهر الأذان بالكلمات لحد ما يخلص.' : 'محتاجة إذن واحد من إعدادات الموبايل عشان تظهر فوق القفل.'}</span>
+      {st && !st.fullScreen && <button className="btn" onClick={() => openAdhanSettings('fullScreen')}>اسمح بعرض شاشة الأذان</button>}
+      {st && !st.exact && <button className="btn" onClick={() => openAdhanSettings('exact')}>اسمح بالمنبّهات في وقتها</button>}
+      <button className="btn soft" onClick={() => { testAdhanNative(); toast('اقفل الموبايل دلوقتي — الأذان هيظهر بعد ١٠ ثواني'); }}>جرّب شاشة الأذان (بعد ١٠ ثواني)</button>
+    </div>
+  );
+}
 
 export default function Settings() {
   const st = useStore((s) => s.settings);
@@ -97,7 +115,8 @@ export default function Settings() {
                 {[['fajr', 'الفجر'], ['dhuhr', 'الظهر'], ['asr', 'العصر'], ['maghrib', 'المغرب'], ['isha', 'العشاء']].map(([k, n]) => <button key={k} className="chip" onClick={() => { stopAdhan(); dispatchEvent(new CustomEvent('rf-adhan-preview', { detail: { key: k, name: n, time: new Date() } })); }}>{n}</button>)}
               </div>
             </div>
-            <div className="xs muted" style={{ lineHeight: 1.8, paddingBottom: 6 }}>يُرفع الأذان كاملًا والتطبيق مفتوح، ويظهر إشعار بدخول الوقت إن سمحت بالإشعارات.</div>
+            <AdhanLock />
+            {!isNative && <div className="xs muted" style={{ lineHeight: 1.8, paddingBottom: 6 }}>يُرفع الأذان كاملًا والتطبيق مفتوح، ويظهر إشعار بدخول الوقت إن سمحت بالإشعارات.</div>}
           </>
         )}
       </section>

@@ -99,7 +99,7 @@ export default function App() {
 
   const [adhan, setAdhan] = useState(null);
   useEffect(() => { const f = (e) => setAdhan(e.detail); addEventListener('rf-adhan-preview', f); return () => removeEventListener('rf-adhan-preview', f); }, []);
-  useAdhanWatcher((p) => { setAdhan(p); if (!isNative) showNotification('حان موعد أذان ' + p.name, 'حيّ على الصلاة — الرفيق'); });
+  useAdhanWatcher((p) => { if (isNative) return; /* في أندرويد: شاشة الأذان الأصلية تظهر فوق كل حاجة */ setAdhan(p); showNotification('حان موعد أذان ' + p.name, 'حيّ على الصلاة — الرفيق'); });
   const tz = resolveLocation(useStore.getState().settings.location).tz;
 
   const done = () => { setSplash(false); sessionStorageSet('rf-intro', '1'); };
