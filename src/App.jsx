@@ -7,6 +7,7 @@ import { sound } from './lib/sound.js';
 import { scheduleReminders } from './lib/notify.js';
 import Splash from './components/Splash.jsx';
 import AdhanOverlay from './components/AdhanOverlay.jsx';
+import OpeningAyah from './components/OpeningAyah.jsx';
 import { useAdhanWatcher } from './lib/adhan.js';
 import { resolveLocation } from './lib/prayer.js';
 import { showNotification } from './lib/notify.js';
@@ -83,6 +84,7 @@ export default function App() {
   const intro = useStore((s) => s.settings.intro);
   const route = useRoute();
   const [splash, setSplash] = useState(() => intro && !sessionStorageGet('rf-intro'));
+  const [opening, setOpening] = useState(() => useStore.getState().settings.openAyah !== false && !sessionStorageGet('rf-intro'));
 
   useEffect(() => { applyTheme(theme); }, [theme]);
   useEffect(() => {
@@ -112,7 +114,8 @@ export default function App() {
         <MessageHost />
       </div>
       <AnimatePresence>{splash && <Splash onDone={done} />}</AnimatePresence>
-      <UpdatePrompt ready={!splash && !adhan} />
+      <AnimatePresence>{opening && !splash && <OpeningAyah onDone={() => { setOpening(false); sessionStorageSet('rf-intro', '1'); }} />}</AnimatePresence>
+      <UpdatePrompt ready={!splash && !opening && !adhan} />
       <AnimatePresence>{adhan && !splash && <AdhanOverlay prayer={adhan} tz={tz} autoplay={!isNative} onClose={() => setAdhan(null)} />}</AnimatePresence>
     </MotionConfig>
   );

@@ -18,6 +18,7 @@ public class MainActivity extends BridgeActivity {
         try {
             WebSettings ws = getBridge().getWebView().getSettings();
             ws.setTextZoom(100);
+            ws.setMediaPlaybackRequiresUserGesture(false); // آية الافتتاح بالصوت أول ما التطبيق يفتح
             ws.setSupportZoom(false);
             ws.setBuiltInZoomControls(false);
             ws.setDisplayZoomControls(false);

@@ -30,6 +30,8 @@ jobs:
           IFS=. read MA MI PA <<< "$V"
           echo "code=$((MA*10000 + MI*100 + PA))" >> $GITHUB_OUTPUT
       - run: npm ci
+      - name: Fetch opening ayah audio (Minshawi, Al-Baqarah 152)
+        run: mkdir -p public/audio/intro && curl -fsSL --retry 4 -o public/audio/intro/2-152.mp3 https://everyayah.com/data/Minshawy_Murattal_128kbps/002152.mp3 && ls -la public/audio/intro || echo "opening ayah fetch failed"
       - run: npm run build
       - run: npx cap sync android
       - name: Build signed APK

@@ -88,6 +88,7 @@ export default function Settings() {
         {st.sound && <div className="set-row"><span className="row"><BookOpen size={18} className="accent" aria-hidden="true" />صوت تقليب صفحات المصحف</span><Switch label="صوت تقليب الصفحات" checked={st.pageSound !== false} onChange={(v) => { setSetting('pageSound', v); if (v) setTimeout(() => sound.page(), 50); }} /></div>}
         <div className="set-row"><span className="row"><Vibrate size={18} className="accent" aria-hidden="true" />الاهتزاز مع العدّ</span><Switch label="الاهتزاز" checked={st.haptics} onChange={(v) => setSetting('haptics', v)} /></div>
         <div className="set-row"><span className="row"><Sparkles size={18} className="accent" aria-hidden="true" />المقدمة المتحركة عند الفتح</span><Switch label="المقدمة المتحركة" checked={st.intro} onChange={(v) => setSetting('intro', v)} /></div>
+        <div className="set-row"><span className="row"><BookOpen size={18} className="accent" aria-hidden="true" /><span className="col" style={{ gap: 0 }}><span>آية الافتتاح</span><span className="xs muted">﴿فاذكروني أذكركم﴾ بصوت المنشاوي</span></span></span><Switch label="آية الافتتاح" checked={st.openAyah !== false} onChange={(v) => setSetting('openAyah', v)} /></div>
       </section>
 
       <section className="card">
