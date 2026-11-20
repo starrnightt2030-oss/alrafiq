@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, RotateCcw, CheckCircle2, Settings2, BookMarked, Flame, Search } from 'lucide-react';
+import { Plus, RotateCcw, CheckCircle2, Settings2, BookMarked, Flame, Search, Mic } from 'lucide-react';
 import { useStore } from '../store.js';
 import { SURAHS, TOTAL_PAGES } from '../lib/quran.js';
 import { nextNew, dueReviews, memorizedCount, juzProgress, surahPages, surahOf, firstMemorize, isMem, addDaysKey } from '../lib/hifz.js';
@@ -103,6 +103,11 @@ export default function Hifz() {
           {left > 0 && <span className="xs" style={{ opacity: .85, lineHeight: 1.7 }}>بخطتك الحالية تختم الحفظ في {finishTxt} بإذن الله</span>}
         </div>
       </section>
+
+      <a href="#/hafiz" className="card row" style={{ textDecoration: 'none', color: 'var(--text)', gap: 12, padding: 16, borderColor: 'var(--acc)', background: 'color-mix(in srgb, var(--acc) 8%, var(--surf))' }}>
+        <span style={{ width: 46, height: 46, borderRadius: 14, display: 'grid', placeItems: 'center', background: 'var(--acc)', color: 'var(--onAcc)', flex: 'none' }}><Mic size={24} /></span>
+        <span className="col" style={{ flex: 1, gap: 2 }}><b>الحفظ الذكي بالصوت</b><span className="xs muted" style={{ lineHeight: 1.7 }}>احفظ بالترديد، وسمّع من حفظك، واختبر نفسك — مراجعة مُجدولة لكل آية، وتقارير وشهادات</span></span>
+      </a>
 
       {mem === 0 && mode !== 'plan' && (
         <div className="card row small" style={{ lineHeight: 1.8 }}>
