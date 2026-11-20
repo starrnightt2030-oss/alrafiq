@@ -55,7 +55,7 @@ function ensureAudio() {
 }
 
 // مصدر الملف: المحمّل على الجهاز أولًا، ثم الإنترنت
-async function srcOf(folder, s, a) {
+export async function srcOf(folder, s, a) {
   const url = urlOf(folder, s, a);
   try {
     if (NATIVE) {
