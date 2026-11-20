@@ -7,10 +7,12 @@
     "dev": "vite",
     "prebuild": "node scripts/build-data.mjs && node scripts/build-quiz.mjs",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "postinstall": "node scripts/patch-speech.mjs"
   },
   "dependencies": {
     "@capacitor-community/file-opener": "^7.0.1",
+    "@capacitor-community/speech-recognition": "^7.0.1",
     "@capacitor/android": "^7.6.10",
     "@capacitor/app": "^7.1.2",
     "@capacitor/browser": "^7.0.5",
