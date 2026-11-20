@@ -136,6 +136,14 @@ const ART = {
     {[[40, 80], [52, 76], [64, 77], [76, 80], [58, 84]].map(([x, y], i) => <ellipse key={i} cx={x} cy={y} rx="9" ry="5.5" fill={i % 2 ? '#8B4A1C' : '#A65A24'} transform={`rotate(${i * 25 - 40} ${x} ${y})`} />)}
     <path d="M30 96h60" stroke={`url(#${p}g)`} strokeWidth="2.5" />
   </>),
+  manasik: (p) => (<>
+    <circle cx="60" cy="56" r="46" fill={`url(#${p}r)`} />
+    <path d="M34 50 L60 38 L86 50 L86 92 L34 92 Z" fill="#141414" stroke="#D9B55A" strokeWidth="1.5" />
+    <path d="M34 50 L60 38 L86 50" fill="none" stroke="#D9B55A" strokeWidth="2" />
+    <rect x="34" y="58" width="52" height="7" fill={`url(#${p}g)`} />
+    <rect x="54" y="72" width="12" height="20" rx="2" fill="#D9B55A" opacity=".85" />
+    <Spark x={98} y={22} s={6} f="#fff" /><Spark x={20} y={28} s={4} f="#FFF0BE" /><Spark x={102} y={88} s={3} f="#FFF0BE" />
+  </>),
   library: (p) => (<>
     <circle cx="60" cy="56" r="46" fill={`url(#${p}r)`} />
     <rect x="22" y="92" width="76" height="6" rx="2" fill={`url(#${p}g)`} />
