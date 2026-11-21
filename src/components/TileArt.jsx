@@ -41,6 +41,15 @@ const ART = {
       <path d="M56 94l-4 18M60 94v20M64 94l4 18" stroke="#FFF0BE" strokeWidth="2.5" strokeLinecap="round" />
     </>);
   },
+  hafiz: (p) => (<>
+    <circle cx="60" cy="56" r="44" fill={`url(#${p}r)`} />
+    {[16, 27, 38].map((r, k) => <path key={r} d={`M${60 - r - 14} ${44 - r * 0.6}a${r + 14} ${r + 14} 0 0 0 0 ${r * 1.2 + 14}M${60 + r + 14} ${44 - r * 0.6}a${r + 14} ${r + 14} 0 0 1 0 ${r * 1.2 + 14}`} fill="none" stroke="#FFF0BE" strokeWidth="3" strokeLinecap="round" opacity={0.9 - k * 0.25} />)}
+    <rect x="47" y="18" width="26" height="46" rx="13" fill={`url(#${p}w)`} />
+    <path d="M38 50a22 22 0 0 0 44 0" fill="none" stroke={`url(#${p}g)`} strokeWidth="5" strokeLinecap="round" />
+    <rect x="57" y="72" width="6" height="14" rx="3" fill={`url(#${p}g)`} />
+    <rect x="44" y="86" width="32" height="7" rx="3.5" fill={`url(#${p}g)`} />
+    <Spark x={92} y={24} s={7} f={`url(#${p}g)`} />
+  </>),
   hifz: (p) => (<>
     <circle cx="56" cy="56" r="42" fill={`url(#${p}r)`} />
     <rect x="26" y="26" width="58" height="72" rx="8" fill={`url(#${p}w)`} transform="rotate(-8 55 62)" />
