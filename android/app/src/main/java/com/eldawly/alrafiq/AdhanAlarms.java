@@ -22,6 +22,12 @@ public final class AdhanAlarms {
         return PendingIntent.getBroadcast(c, 7000 + slot, i, PendingIntent.FLAG_IMMUTABLE | extra);
     }
 
+    /** لما المستخدم يدوس على «المنبّه الجاي» في الموبايل يفتح الرفيق */
+    static PendingIntent showApp(Context c) {
+        Intent i = new Intent(c, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        return PendingIntent.getActivity(c, 6999, i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+    }
+
     static boolean canExact(Context c) {
         AlarmManager am = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
         return Build.VERSION.SDK_INT < 31 || am.canScheduleExactAlarms();
@@ -49,8 +55,15 @@ public final class AdhanAlarms {
                         .putExtra(EXTRA_NAME, o.optString("name"))
                         .putExtra(EXTRA_TIME, o.optString("time"));
                 PendingIntent op = pi(c, n++, i, PendingIntent.FLAG_UPDATE_CURRENT);
-                if (canExact(c)) am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, op);
-                else am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, op);
+                // منبّه «ساعة» (setAlarmClock): أعلى أولوية في أندرويد — مش بيتأثر بوضع توفير البطارية (Doze)
+                // ولا بحصّة المنبّهات للتطبيقات «قليلة الاستخدام» (اللي كانت بتسمح بمنبّه واحد في اليوم = الفجر بس)،
+                // وبيسمح بتشغيل خدمة الصوت من الخلفية في أندرويد ١٢+
+                boolean ok = false;
+                if (canExact(c)) {
+                    try { am.setAlarmClock(new AlarmManager.AlarmClockInfo(at, showApp(c)), op); ok = true; }
+                    catch (Exception e) { try { am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, op); ok = true; } catch (Exception ignored) {} }
+                }
+                if (!ok) am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, op);
             }
         } catch (Exception ignored) {}
         p.edit().putInt("count", n).apply();

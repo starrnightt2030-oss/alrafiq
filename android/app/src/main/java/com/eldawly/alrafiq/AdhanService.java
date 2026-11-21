@@ -109,7 +109,8 @@ public class AdhanService extends Service {
         am = (AudioManager) getSystemService(AUDIO_SERVICE);
         int mode = am.getRingerMode();
         float vol = AdhanAlarms.prefs(this).getFloat("volume", 1f);
-        if (mode != AudioManager.RINGER_MODE_NORMAL) {
+        boolean silentPlay = AdhanAlarms.prefs(this).getBoolean("silentPlay", false);
+        if (mode != AudioManager.RINGER_MODE_NORMAL && !silentPlay) {
             // الموبايل صامت أو هزّاز: نهزّ ونعرض الشاشة بدون صوت
             vibrate();
             h.postDelayed(this::finishAll, 60 * 1000);

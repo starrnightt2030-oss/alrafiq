@@ -1,9 +1,13 @@
 package com.eldawly.alrafiq;
 
+import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.app.KeyguardManager;
 import android.app.NotificationManager;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -16,10 +20,15 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.view.animation.AccelerateDecelerateInterpolator;
+import android.widget.ImageView;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import androidx.core.content.res.ResourcesCompat;
+
+import java.io.InputStream;
 import java.lang.ref.WeakReference;
 
 /** شاشة الأذان الكاملة: تظهر فوق قفل الشاشة وتفضل ثابتة لحد ما الأذان والدعاء يخلصوا */
@@ -40,19 +49,40 @@ public class AdhanActivity extends Activity {
 
     private final Handler h = new Handler(Looper.getMainLooper());
     private TextView phrase, reply, label;
+    private LinearLayout dots;
     private int last = -2;
+    private Typeface amiri, ruqaa;
+    static final int GOLD = 0xFFF5CF73;
 
     private int dp(float v) { return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v, getResources().getDisplayMetrics()); }
-    private TextView tv(String s, float sp, int color, boolean bold) {
+    private TextView tv(String s, float sp, int color, Typeface f) {
         TextView t = new TextView(this); t.setText(s); t.setTextSize(sp); t.setTextColor(color); t.setGravity(Gravity.CENTER);
-        if (bold) t.setTypeface(Typeface.DEFAULT_BOLD); t.setLineSpacing(0, 1.25f); return t;
+        t.setTypeface(f != null ? f : Typeface.DEFAULT); t.setLineSpacing(0, 1.2f); t.setShadowLayer(dp(6), 0, dp(1.5f), 0xAA000000); return t;
     }
     private TextView button(String s, boolean primary, View.OnClickListener on) {
-        TextView b = tv(s, 18, primary ? Color.parseColor("#2A1C05") : Color.WHITE, true);
-        GradientDrawable g = new GradientDrawable(); g.setCornerRadius(dp(30));
-        if (primary) g.setColor(Color.parseColor("#F2C766")); else { g.setColor(0x22FFFFFF); g.setStroke(dp(1.5f), 0x88FFFFFF); }
+        TextView b = tv(s, 17, primary ? 0xFF2A1C05 : Color.WHITE, Typeface.DEFAULT_BOLD);
+        b.setShadowLayer(0, 0, 0, 0);
+        GradientDrawable g;
+        if (primary) { g = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[]{0xFFE9B850, 0xFFF9DC8C, 0xFFE9B850}); }
+        else { g = new GradientDrawable(); g.setColor(0x2EFFFFFF); g.setStroke(dp(1.2f), 0x80FFFFFF); }
+        g.setCornerRadius(dp(30));
         b.setBackground(g); b.setPadding(dp(16), dp(14), dp(16), dp(14)); b.setOnClickListener(on);
+        if (Build.VERSION.SDK_INT >= 21 && primary) b.setElevation(dp(6));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2); lp.topMargin = dp(10); b.setLayoutParams(lp); return b;
+    }
+    private Typeface font(int res) { try { return ResourcesCompat.getFont(this, res); } catch (Exception e) { return Typeface.SERIF; } }
+
+    /** خلفية الصلاة: صورتين لكل صلاة بالتبادل يوم بيوم (نفس صور شاشة الأذان في التطبيق) */
+    static String bgName(String k) {
+        String key = k == null || k.isEmpty() ? "isha" : k;
+        int day = java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_YEAR);
+        return key + (day % 2 == 0 ? "1" : "2");
+    }
+    private Bitmap loadBg(String k) {
+        for (String n : new String[]{bgName(k), (k == null || k.isEmpty() ? "isha" : k) + "1", "isha1"}) {
+            try (InputStream in = getAssets().open("public/img/adhan/" + n + ".webp")) { Bitmap b = BitmapFactory.decodeStream(in); if (b != null) return b; } catch (Exception ignored) {}
+        }
+        return null;
     }
 
     @Override
@@ -63,7 +93,9 @@ public class AdhanActivity extends Activity {
         Window w = getWindow();
         w.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON | WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
         w.setStatusBarColor(Color.TRANSPARENT);
-        w.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
+        if (Build.VERSION.SDK_INT >= 21) w.setNavigationBarColor(Color.TRANSPARENT);
+        w.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
+        amiri = font(R.font.amiri_bold); ruqaa = font(R.font.ruqaa_bold);
 
         String k = AdhanService.key;
         String[] c = SKY[4];
@@ -72,25 +104,58 @@ public class AdhanActivity extends Activity {
         root.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{Color.parseColor(c[1]), Color.parseColor(c[2]), Color.parseColor(c[3])}));
         root.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
 
+        // الصورة بملء الشاشة مع حركة تقريب هادية
+        Bitmap bg = loadBg(k);
+        if (bg != null) {
+            ImageView img = new ImageView(this); img.setScaleType(ImageView.ScaleType.CENTER_CROP); img.setImageBitmap(bg);
+            root.addView(img, new FrameLayout.LayoutParams(-1, -1));
+            img.setAlpha(0f); img.animate().alpha(1f).setDuration(900).start();
+            ObjectAnimator zx = ObjectAnimator.ofFloat(img, "scaleX", 1f, 1.1f), zy = ObjectAnimator.ofFloat(img, "scaleY", 1f, 1.1f);
+            for (ObjectAnimator a : new ObjectAnimator[]{zx, zy}) { a.setDuration(26000); a.setRepeatMode(ValueAnimator.REVERSE); a.setRepeatCount(ValueAnimator.INFINITE); a.setInterpolator(new AccelerateDecelerateInterpolator()); a.start(); }
+        }
+        // تظليل فوق وتحت عشان الكلام يبان واضح على أي صورة
+        View shade = new View(this);
+        shade.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{0xCC000000, 0x40000000, 0x26000000, 0x59000000, 0xE6000000}));
+        root.addView(shade, new FrameLayout.LayoutParams(-1, -1));
+
         LinearLayout col = new LinearLayout(this); col.setOrientation(LinearLayout.VERTICAL); col.setGravity(Gravity.CENTER_HORIZONTAL);
-        col.setPadding(dp(28), dp(56), dp(28), dp(36));
-        col.addView(tv("الرفيق", 15, 0xCCF2C766, true));
-        TextView icon = tv("🕌", 64, Color.WHITE, false); icon.setPadding(0, dp(18), 0, dp(6)); col.addView(icon);
-        col.addView(tv("حان الآن موعد أذان", 20, 0xEEFFFFFF, false));
-        col.addView(tv(AdhanService.name.isEmpty() ? "الصلاة" : AdhanService.name, 48, Color.parseColor("#F7D37A"), true));
-        if (!AdhanService.time.isEmpty()) col.addView(tv(AdhanService.time, 18, 0xCCFFFFFF, false));
+        col.setPadding(dp(26), dp(52), dp(26), dp(34));
 
+        TextView brand = tv("✦  الرفيق  ✦", 13, 0xDDF5CF73, Typeface.DEFAULT_BOLD); brand.setLetterSpacing(0.15f); col.addView(brand);
+        TextView sub = tv("حان الآن موعد أذان", 19, 0xF2FFFFFF, Typeface.DEFAULT); sub.setPadding(0, dp(14), 0, 0); col.addView(sub);
+        TextView title = tv(AdhanService.name.isEmpty() ? "الصلاة" : AdhanService.name, 60, GOLD, ruqaa);
+        title.setShadowLayer(dp(16), 0, 0, 0xCCE0A43A); title.setIncludeFontPadding(false); title.setPadding(0, dp(4), 0, dp(6));
+        col.addView(title);
+        title.setScaleX(.85f); title.setScaleY(.85f); title.setAlpha(0f); title.animate().scaleX(1f).scaleY(1f).alpha(1f).setStartDelay(300).setDuration(900).start();
+        if (!AdhanService.time.isEmpty()) {
+            TextView t = tv("🕰  " + AdhanService.time, 15, Color.WHITE, Typeface.DEFAULT_BOLD); t.setShadowLayer(0, 0, 0, 0);
+            GradientDrawable pg = new GradientDrawable(); pg.setCornerRadius(dp(20)); pg.setColor(0x40000000); pg.setStroke(dp(1), 0x66F5CF73);
+            t.setBackground(pg); t.setPadding(dp(18), dp(6), dp(18), dp(6));
+            LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(-2, -2); tl.gravity = Gravity.CENTER_HORIZONTAL; col.addView(t, tl);
+        }
+
+        View sp1 = new View(this); col.addView(sp1, new LinearLayout.LayoutParams(1, 0, 1f));
+
+        // بطاقة زجاجية فيها جملة الأذان الحالية
         LinearLayout card = new LinearLayout(this); card.setOrientation(LinearLayout.VERTICAL); card.setGravity(Gravity.CENTER);
-        GradientDrawable cg = new GradientDrawable(); cg.setCornerRadius(dp(24)); cg.setColor(0x33000000); cg.setStroke(dp(1), 0x33FFFFFF);
-        card.setBackground(cg); card.setPadding(dp(18), dp(22), dp(18), dp(22));
-        LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(-1, -2); clp.topMargin = dp(26); card.setLayoutParams(clp);
-        label = tv("", 13, 0xCCF2C766, true); card.addView(label);
-        phrase = tv(T, 30, Color.WHITE, true); phrase.setPadding(0, dp(6), 0, dp(6)); card.addView(phrase);
-        reply = tv("", 15, 0xBBFFFFFF, false); card.addView(reply);
+        GradientDrawable cg = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{0x8C08121E, 0xB305090F});
+        cg.setCornerRadius(dp(28)); cg.setStroke(dp(1.2f), 0x73F5CF73);
+        card.setBackground(cg); card.setPadding(dp(18), dp(20), dp(18), dp(18));
+        label = tv("", 13, GOLD, Typeface.DEFAULT_BOLD); label.setShadowLayer(0, 0, 0, 0); card.addView(label);
+        TextView orn = tv("۞", 14, 0x99F5CF73, null); orn.setShadowLayer(0, 0, 0, 0); card.addView(orn);
+        phrase = tv(T, 32, Color.WHITE, amiri); phrase.setShadowLayer(dp(14), 0, 0, 0xB3F5CF73); phrase.setPadding(0, dp(2), 0, dp(8)); card.addView(phrase);
+        reply = tv("", 14, 0xDDFFFFFF, Typeface.DEFAULT); reply.setShadowLayer(0, 0, 0, 0);
+        GradientDrawable rg = new GradientDrawable(); rg.setCornerRadius(dp(16)); rg.setColor(0x26FFFFFF); reply.setBackground(rg); reply.setPadding(dp(14), dp(6), dp(14), dp(6));
+        card.addView(reply, new LinearLayout.LayoutParams(-2, -2));
+        dots = new LinearLayout(this); dots.setOrientation(LinearLayout.HORIZONTAL); dots.setGravity(Gravity.CENTER);
+        for (int i = 0; i < TX.length; i++) { View d = new View(this); LinearLayout.LayoutParams dl = new LinearLayout.LayoutParams(dp(7), dp(7)); dl.leftMargin = dl.rightMargin = dp(3); dots.addView(d, dl); }
+        LinearLayout.LayoutParams dlp = new LinearLayout.LayoutParams(-2, -2); dlp.topMargin = dp(14); card.addView(dots, dlp);
+        LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(-1, -2); card.setLayoutParams(clp);
         col.addView(card);
+        card.setTranslationY(dp(30)); card.setAlpha(0f); card.animate().translationY(0).alpha(1f).setStartDelay(600).setDuration(800).start();
 
-        View space = new View(this); col.addView(space, new LinearLayout.LayoutParams(1, 0, 1f));
-        col.addView(tv("بصوت الشيخ نصر الدين طوبار", 13, 0x99FFFFFF, false));
+        View sp2 = new View(this); col.addView(sp2, new LinearLayout.LayoutParams(1, 0, .6f));
+        col.addView(tv("بصوت الشيخ نصر الدين طوبار", 13, 0xB3FFFFFF, Typeface.DEFAULT));
         col.addView(button("إيقاف الأذان", true, v -> stopAdhan()));
         col.addView(button("فتح الرفيق", false, v -> openApp()));
         root.addView(col, new FrameLayout.LayoutParams(-1, -1));
@@ -98,10 +163,22 @@ public class AdhanActivity extends Activity {
         h.post(tick);
     }
 
+    private void paintDots(int now) {
+        for (int i = 0; i < dots.getChildCount(); i++) {
+            GradientDrawable g = new GradientDrawable(); g.setShape(GradientDrawable.OVAL);
+            g.setColor(now < 0 ? 0x4DFFFFFF : i < now ? GOLD : i == now ? Color.WHITE : 0x4DFFFFFF);
+            View d = dots.getChildAt(i); d.setBackground(g); float sc = i == now ? 1.5f : 1f; d.setScaleX(sc); d.setScaleY(sc);
+        }
+    }
+
     private final Runnable tick = new Runnable() {
         @Override public void run() {
             if ("dua".equals(AdhanService.phase)) {
-                if (last != 99) { last = 99; label.setText("دعاء ما بعد الأذان"); phrase.setText(DUA); phrase.setTextSize(21); reply.setText("«حلّت له شفاعتي يوم القيامة» — رواه البخاري"); }
+                if (last != 99) {
+                    last = 99; label.setText("دعاء ما بعد الأذان"); phrase.setText(DUA); phrase.setTextSize(22);
+                    reply.setText("«حلّت له شفاعتي يوم القيامة» — رواه البخاري"); dots.setVisibility(View.GONE);
+                    phrase.setAlpha(0f); phrase.animate().alpha(1f).setDuration(700).start();
+                }
             } else {
                 int pos = AdhanService.position();
                 double s = pos >= 0 ? pos / 1000.0 : -1;
@@ -109,8 +186,10 @@ public class AdhanActivity extends Activity {
                 int i = 0; if (s >= 0) for (int k = 0; k < cues.length; k++) if (s >= cues[k]) i = k;
                 if (i != last) {
                     last = i; label.setText(s >= 0 ? "يُرفع الآن" : "حيّ على الصلاة");
-                    phrase.setText(TX[i]); phrase.setAlpha(0f); phrase.animate().alpha(1f).setDuration(500).start();
+                    phrase.setText(TX[i]); phrase.setAlpha(0f); phrase.setTranslationY(dp(14));
+                    phrase.animate().alpha(1f).translationY(0).setDuration(650).start();
                     reply.setText("ردّد: " + (TX[i].equals(HS) || TX[i].equals(HF) ? HAWQ : TX[i]));
+                    paintDots(s >= 0 ? i : -1);
                 }
             }
             h.postDelayed(this, 300);

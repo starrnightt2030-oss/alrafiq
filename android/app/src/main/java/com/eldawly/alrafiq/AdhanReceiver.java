@@ -16,5 +16,7 @@ public class AdhanReceiver extends BroadcastReceiver {
             // لو النظام منع تشغيل الخدمة: نعرض شاشة الأذان كإشعار ملء الشاشة على الأقل
             AdhanService.postFallback(c, in.getStringExtra(AdhanAlarms.EXTRA_KEY), in.getStringExtra(AdhanAlarms.EXTRA_NAME), in.getStringExtra(AdhanAlarms.EXTRA_TIME));
         }
+        // نتأكد إن باقي مواعيد الأسبوع لسه متجدولة (لو النظام مسحها لأي سبب)
+        try { AdhanAlarms.scheduleAll(c); } catch (Exception ignored) {}
     }
 }

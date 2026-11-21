@@ -16,7 +16,7 @@ function adhanItems(extra) {
   const s = useStore.getState().settings; const items = [];
   if (s.adhan.enabled) {
     const place = resolveLocation(s.location); const now = new Date();
-    for (let d = 0; d < 7; d++) {
+    for (let d = 0; d < 12; d++) {
       const day = new Date(now); day.setDate(day.getDate() + d);
       timesFor(place, day).forEach((p) => { if (!p.info && s.adhan.prayers[p.key] && p.time > now) items.push({ at: p.time.getTime(), key: p.key, name: p.name, time: hm(p.time) }); });
     }
@@ -27,7 +27,7 @@ function adhanItems(extra) {
 export async function syncAdhanNative(extra) {
   if (!isNative) return;
   const a = useStore.getState().settings.adhan;
-  try { await AdhanNative.schedule({ items: JSON.stringify(adhanItems(extra)), volume: a.volume, dua: a.dua !== false }); } catch (e) { console.warn('adhan native', e); }
+  try { await AdhanNative.schedule({ items: JSON.stringify(adhanItems(extra)), volume: a.volume, dua: a.dua !== false, silentPlay: !!a.silentPlay }); } catch (e) { console.warn('adhan native', e); }
 }
 // تجربة: شاشة الأذان بعد ١٠ ثواني (اقفل الموبايل وشوفها)
 export const testAdhanNative = () => syncAdhanNative({ at: Date.now() + 10000, key: 'dhuhr', name: 'الظهر (تجربة)', time: hm(new Date(Date.now() + 10000)) });
@@ -66,7 +66,7 @@ export async function rescheduleNative() {
     const s = useStore.getState().settings;
     const place = resolveLocation(s.location);
     const now = new Date(); const list = [];
-    for (let d = 0; d < 7; d++) {
+    for (let d = 0; d < 12; d++) {
       const day = new Date(now); day.setDate(day.getDate() + d);
       if (s.reminders.enabled) {
         const a = AM[(d + now.getDate()) % AM.length], b = PM[(d + now.getDate()) % PM.length];

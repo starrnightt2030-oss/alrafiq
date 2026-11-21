@@ -21,7 +21,7 @@ const defaultSettings = {
   textScale: 1,
   wirdGoal: 1000,
   friday: true,
-  adhan: { enabled: true, volume: 1, dua: true, prayers: { fajr: true, dhuhr: true, asr: true, maghrib: true, isha: true } },
+  adhan: { enabled: true, volume: 1, dua: true, silentPlay: false, prayers: { fajr: true, dhuhr: true, asr: true, maghrib: true, isha: true } },
 };
 
 const day = (s, k = todayKey()) => s.days[k] || { azkar: {}, wird: {} };

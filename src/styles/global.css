@@ -308,20 +308,27 @@ input[type=range] { accent-color: var(--acc); }
 .az-sun { position: absolute; left: 50%; width: 120px; height: 120px; margin-left: -60px; border-radius: 50%; filter: blur(2px); box-shadow: 0 0 90px 40px rgba(255,214,120,.45); opacity: .85; }
 .az-rays { position: absolute; left: 50%; bottom: 8%; width: 160vmax; height: 160vmax; margin-left: -80vmax; margin-bottom: -80vmax; background: repeating-conic-gradient(from 0deg, rgba(255,230,160,.08) 0 5deg, transparent 5deg 16deg); border-radius: 50%; mask-image: radial-gradient(circle, #000 15%, transparent 60%); -webkit-mask-image: radial-gradient(circle, #000 15%, transparent 60%); }
 .az-mosque { position: absolute; left: 50%; bottom: 0; width: min(100%, 560px); transform: translateX(-50%); height: auto; }
-.az-shade { position: absolute; inset: 0; z-index: -1; background: radial-gradient(ellipse at 50% 45%, rgba(0,0,0,.35), transparent 70%); }
+.az-shade { position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgba(0,0,0,.78) 0%, rgba(0,0,0,.25) 26%, rgba(0,0,0,.15) 50%, rgba(0,0,0,.35) 70%, rgba(0,0,0,.88) 100%); }
+.az-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform-origin: 50% 60%; }
+.az-glow { position: absolute; left: 50%; top: 52%; width: 120vmin; height: 120vmin; transform: translate(-50%, -50%); background: radial-gradient(circle, rgba(247,201,107,.22), transparent 60%); pointer-events: none; }
+.az-brand { font-size: 12px; font-weight: 700; letter-spacing: .2em; color: #F5CF73; opacity: .9; margin-bottom: 8px; }
+.az-time { align-self: center; margin-top: 6px; font-size: 14px; font-weight: 700; padding: 5px 16px; border-radius: 999px; background: rgba(0,0,0,.3); border: 1px solid rgba(245,207,115,.45); backdrop-filter: blur(6px); }
+.az-card { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%; padding: 18px 16px 16px; border-radius: 28px; background: linear-gradient(180deg, rgba(8,18,30,.5), rgba(5,9,15,.72)); border: 1px solid rgba(245,207,115,.42); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: 0 20px 50px rgba(0,0,0,.35); }
+.az-label { font-size: 12px; font-weight: 700; color: #F5CF73; }
+.az-orn { color: rgba(245,207,115,.6); font-size: 14px; line-height: 1; }
 .az-x { position: absolute; top: calc(env(safe-area-inset-top) + 14px); left: 16px; width: 42px; height: 42px; border-radius: 14px; border: 1px solid rgba(255,255,255,.25); background: rgba(0,0,0,.25); color: #fff; display: grid; place-items: center; backdrop-filter: blur(8px); }
 .az-head { display: flex; flex-direction: column; gap: 2px; text-shadow: 0 2px 12px rgba(0,0,0,.5); }
 .az-sm { font-size: 13px; opacity: .9; }
-.az-title { font-size: clamp(40px, 12vw, 58px); margin: 0; color: #F7D27A; text-shadow: 0 4px 24px rgba(247,201,107,.55), 0 2px 6px rgba(0,0,0,.5); }
-.az-center { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; width: 100%; max-width: 520px; margin-bottom: 18vh; }
-.az-phrase { font-family: 'Amiri', serif; font-weight: 700; font-size: clamp(32px, 10vw, 54px); line-height: 1.7; color: #fff; text-shadow: 0 0 30px rgba(247,201,107,.65), 0 3px 10px rgba(0,0,0,.6); }
+.az-title { font-size: clamp(48px, 15vw, 70px); line-height: 1.25; margin: 0; color: #F7D27A; text-shadow: 0 4px 24px rgba(247,201,107,.55), 0 2px 6px rgba(0,0,0,.5); }
+.az-center { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; width: 100%; max-width: 520px; margin: 12px 0; }
+.az-phrase { font-family: 'Amiri', serif; font-weight: 700; font-size: clamp(28px, 9vw, 46px); line-height: 1.7; color: #fff; text-shadow: 0 0 30px rgba(247,201,107,.65), 0 3px 10px rgba(0,0,0,.6); }
 .az-reply { font-size: 13px; padding: 6px 14px; border-radius: 999px; background: rgba(0,0,0,.3); border: 1px solid rgba(255,255,255,.2); backdrop-filter: blur(6px); }
 .az-dots { display: flex; gap: 6px; margin-top: 6px; }
 .az-dots i { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.3); transition: all .4s; }
 .az-dots i.done { background: #F7C96B; }
 .az-dots i.now { background: #fff; transform: scale(1.5); box-shadow: 0 0 10px #F7C96B; }
 .az-dua { display: flex; flex-direction: column; gap: 10px; padding: 18px; border-radius: 24px; background: rgba(5,10,20,.55); border: 1px solid rgba(247,201,107,.4); backdrop-filter: blur(10px); }
-.az-foot { position: relative; z-index: 1; }
+.az-foot { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; }
 .az-stop { display: inline-flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 20px; border-radius: 999px; border: 1px solid rgba(255,255,255,.35); background: rgba(0,0,0,.35); color: #fff; font: inherit; font-size: 14px; backdrop-filter: blur(8px); }
 
 /* ——— التفسير والمشاركة ——— */

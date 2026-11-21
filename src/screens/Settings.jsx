@@ -23,15 +23,21 @@ import { useRef } from 'react';
 // شاشة الأذان فوق القفل (أندرويد): حالة الأذونات + تجربة بعد ١٠ ثواني
 function AdhanLock() {
   const [st, setSt] = useState(null);
+  const silent = useStore((s) => s.settings.adhan.silentPlay);
   useEffect(() => { const f = () => adhanStatus().then(setSt); f(); const on = () => document.visibilityState === 'visible' && f(); document.addEventListener('visibilitychange', on); return () => document.removeEventListener('visibilitychange', on); }, []);
   if (!isNative) return null;
-  const ok = st && st.fullScreen && st.exact;
+  const ok = st && st.fullScreen && st.exact && st.battery !== false;
   return (
     <div className="col" style={{ gap: 8, padding: '6px 0 10px' }}>
       <span className="small" style={{ fontWeight: 700 }}>شاشة الأذان على الموبايل المقفول</span>
       <span className="xs muted" style={{ lineHeight: 1.8 }}>{st == null ? '…' : ok ? 'جاهزة ✓ — مع دخول الوقت تنوّر الشاشة ويظهر الأذان بالكلمات لحد ما يخلص.' : 'محتاجة إذن واحد من إعدادات الموبايل عشان تظهر فوق القفل.'}</span>
       {st && !st.fullScreen && <button className="btn" onClick={() => openAdhanSettings('fullScreen')}>اسمح بعرض شاشة الأذان</button>}
       {st && !st.exact && <button className="btn" onClick={() => openAdhanSettings('exact')}>اسمح بالمنبّهات في وقتها</button>}
+      {st && st.battery === false && <>
+        <span className="xs muted" style={{ lineHeight: 1.8 }}>توفير البطارية ممكن يمنع الأذان في بعض الأوقات. اسمح للرفيق يشتغل في الخلفية عشان يأذّن في كل الصلوات.</span>
+        <button className="btn" onClick={() => openAdhanSettings('battery')}>اسمح للأذان يشتغل من غير قيود البطارية</button>
+      </>}
+      {st && st.ringer === false && !silent && <span className="xs" style={{ color: '#E0A84B', lineHeight: 1.8 }}>الموبايل دلوقتي على الصامت/الهزّاز — الأذان هيهزّ بس. لو عايزه بالصوت فعّل «أذّن بالصوت حتى لو الموبايل صامت».</span>}
       <button className="btn soft" onClick={() => { testAdhanNative(); toast('اقفل الموبايل دلوقتي — الأذان هيظهر بعد ١٠ ثواني'); }}>جرّب شاشة الأذان (بعد ١٠ ثواني)</button>
     </div>
   );
@@ -99,6 +105,7 @@ export default function Settings() {
               {FARD.map((p) => <button key={p.key} aria-pressed={ad.prayers[p.key]} className={'chip' + (ad.prayers[p.key] ? ' on' : '')} onClick={() => setAd({ prayers: { ...ad.prayers, [p.key]: !ad.prayers[p.key] } })}>{p.name}</button>)}
             </div>
             <div className="set-row"><span className="small">دعاء ما بعد الأذان بعده تلقائيًّا</span><Switch label="دعاء ما بعد الأذان" checked={ad.dua} onChange={(v) => setAd({ dua: v })} /></div>
+            {isNative && <div className="set-row"><span className="small">أذّن بالصوت حتى لو الموبايل صامت أو هزّاز</span><Switch label="الأذان والموبايل صامت" checked={!!ad.silentPlay} onChange={(v) => setAd({ silentPlay: v })} /></div>}
             <div className="set-row">
               <label className="row" style={{ flex: 1 }}><span className="small muted" style={{ minWidth: 60 }}>صوت الأذان</span>
                 <input type="range" min="0.2" max="1" step="0.1" value={ad.volume} onChange={(e) => setAd({ volume: +e.target.value })} style={{ flex: 1 }} /></label>
