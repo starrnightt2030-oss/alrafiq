@@ -72,15 +72,19 @@ async function askMic() {
 let active = null, wired = null;
 const wire = (p) => wired || (wired = (async () => {
   await p.removeAllListeners().catch(() => {});
-  await p.addListener('partialResults', (d) => active?.got(d?.matches?.[0]));
-  await p.addListener('listeningState', (d) => log('المحرّك: ' + (d?.status === 'started' ? 'بدأ يسمع كلام' : 'وقف')));
+  // بنبعت كل الاحتمالات اللي المحرّك سمعها (مش الأول بس)، والشاشة بتختار الأقرب للآية
+  await p.addListener('partialResults', (d) => active?.got(d?.matches));
+  await p.addListener('listeningState', (d) => { const on = d?.status === 'started'; log('المحرّك: ' + (on ? 'بدأ يسمع كلام' : 'وقف')); if (on) active?.ready?.(); });
 })());
 // تجهيز المايك أول ما الشاشة تفتح، عشان أول سماع يبدأ من غير تأخير
 export function warmMic() { if (native) wire(plugin()).catch(() => {}); }
 
 // muted: يبدأ يسمع بدري (والشيخ لسه بيخلّص الآية) عشان المايك يبقى جاهز أول ما الطفل يتكلم.
 // أي كلام بيتسمع قبل unmute() (صوت الشيخ نفسه) بيتشال، والمهلات بتبدأ تعدّ من unmute()
-export function hear({ onText, onFail, maxMs = 15000, waitMs = 7000, muted = false } = {}) {
+// rank(txt): درجة تطابق الكلام مع المطلوب، عشان نختار أحسن احتمال من اللي المحرّك سمعها
+// onReady: بتتنادي أول ما المايك يبقى فعلًا شغّال وجاهز يسمع (عشان الشاشة تقول «اتكلم دلوقتي»)
+export function hear({ onText, onFail, onReady, rank, maxMs = 15000, waitMs = 7000, muted = false } = {}) {
+  let readied = false; const ready = () => { if (readied || ended) return; readied = true; onReady?.(); };
   let text = '', ended = false, resolve, timers = [], cleanup = () => {}, mute = muted, pre = [], openR;
   const promise = new Promise((r) => { resolve = r; });
   const opened = new Promise((r) => { openR = r; if (!muted) r(); });
@@ -88,8 +92,11 @@ export function hear({ onText, onFail, maxMs = 15000, waitMs = 7000, muted = fal
     if (ended) return; ended = true;
     timers.forEach(clearTimeout); cleanup(); openR(); resolve(text.trim());
   };
-  const got = (t) => {
-    if (ended || !t || !t.trim()) return;
+  const got = (t0) => {
+    const alts = (Array.isArray(t0) ? t0 : [t0]).filter((x) => x && x.trim());
+    if (ended || !alts.length) return;
+    ready();
+    const t = rank && alts.length > 1 ? alts.reduce((b, x) => (rank(x) > rank(b) ? x : b)) : alts[0];
     const w = t.trim().split(/\s+/);
     if (mute) { pre = w; return; }
     // نشيل كلام الشيخ اللي اتسمع قبل ما دور الطفل يبدأ (لو المحرّك لسه في نفس الجلسة)
@@ -114,22 +121,25 @@ export function hear({ onText, onFail, maxMs = 15000, waitMs = 7000, muted = fal
         timers.forEach(clearTimeout); timers = [setTimeout(finish, 45000)];
         log('فتح شباك جوجل');
         try {
-          const r = await p.start({ language: LANG, popup: true, partialResults: false, maxResults: 1, prompt: 'اقرا الآية' });
+          ready();
+          const r = await p.start({ language: LANG, popup: true, partialResults: false, maxResults: 5, prompt: 'اقرأ الآية' });
           const t = r?.matches?.[0]; log('شباك جوجل رجّع: ' + (t ? '«' + t.slice(0, 30) + '»' : 'ولا حاجة'));
-          if (t) { got(t); if (getMode() !== 'popup') setMode('popup'); }
+          if (t) { got(r.matches); if (getMode() !== 'popup') setMode('popup'); }
         } catch (e) { log('شباك جوجل اتقفل: ' + (e?.message || e)); }
         finish();
       };
       if (getMode() === 'popup') { await opened; if (!ended) popup(); return; }
       // السماع بيبدأ على طول: المستمعين متسجّلين مرة واحدة من بدري (warmMic)، فمفيش خطوات مع أندرويد قبل start
-      active = { got: (t) => { if (t && getMode() !== 'bg') setMode('bg'); got(t); } };
+      active = { got: (t) => { if (t?.length && getMode() !== 'bg') setMode('bg'); got(t); }, ready };
       const me = active, hs = [{ remove: () => { if (active === me) active = null; } }];
       if (!wired) await wire(p);
       let fails = 0, busy = false, closing = false, restarts = 0, switched = false;
       const begin = async () => {
         try {
-          await p.start({ language: LANG, partialResults: true, popup: false, maxResults: 1 });
+          await p.start({ language: LANG, partialResults: true, popup: false, maxResults: 5 });
           fails = 0; if (!restarts) log('بدأ السماع في الخلفية');
+          // بعض الموبايلات مابتبعتش حدث «بدأ»، فبعد لحظة بنعتبره جاهز
+          setTimeout(ready, 350);
         } catch (e) {
           log('رفض يبدأ: ' + (e?.message || e));
           if (++fails >= 3) { onFail?.(String(e?.message || e || 'error')); finish(); }
@@ -150,11 +160,11 @@ export function hear({ onText, onFail, maxMs = 15000, waitMs = 7000, muted = fal
             clearInterval(poll); hs.forEach((h) => h.remove?.()); p.stop().catch(() => {}); // stop() في الإضافة مابترجعش، فمانستناهاش
             await sleep(300); await opened; if (!ended) popup();
           } else {
-            await sleep(250); // المحرّك قفل من غير كلام (سكوت أو خطأ): نشغّله تاني
+            await sleep(80); // المحرّك قفل من غير كلام (سكوت أو خطأ): نشغّله تاني
             if (!ended && !text) await begin();
           }
         } finally { busy = false; }
-      }, 600);
+      }, 300);
       cleanup = () => { clearInterval(poll); if (!switched) p.stop().catch(() => {}); hs.forEach((h) => h.remove?.()); };
       await begin();
     })().catch((e) => { log('خطأ: ' + (e?.message || e)); onFail?.(String(e?.message || e)); finish(); });
@@ -162,13 +172,14 @@ export function hear({ onText, onFail, maxMs = 15000, waitMs = 7000, muted = fal
     let r = null, fails = 0;
     const begin = () => {
       r = new WebSR();
-      r.lang = LANG; r.interimResults = true; r.continuous = false; r.maxAlternatives = 1;
-      r.onresult = (e) => { fails = 0; got([...e.results].map((x) => x[0].transcript).join(' ')); };
+      r.lang = LANG; r.interimResults = true; r.continuous = false; r.maxAlternatives = 4;
+      r.onaudiostart = ready;
+      r.onresult = (e) => { fails = 0; const R = [...e.results], n = Math.max(...R.map((x) => x.length)); got([...Array(n)].map((_, k) => R.map((x) => (x[k] || x[0]).transcript).join(' '))); };
       r.onerror = (e) => {
         if (e?.error === 'not-allowed' || e?.error === 'service-not-allowed' || ++fails >= 4) { onFail?.(e?.error || 'error'); finish(); }
       };
       // لو قفل من غير كلام نشغّله تاني، ولو الطفل قال وسكت نخلّص
-      r.onend = () => { if (ended) return; if (text && !mute) timers.push(setTimeout(finish, 300)); else timers.push(setTimeout(() => { if (!ended) begin(); }, 250)); };
+      r.onend = () => { if (ended) return; if (text && !mute) timers.push(setTimeout(finish, 300)); else timers.push(setTimeout(() => { if (!ended) begin(); }, 60)); };
       try { r.start(); } catch (e) { onFail?.(String(e?.message || e)); finish(); }
     };
     cleanup = () => { try { r?.abort(); } catch (e) {} };
