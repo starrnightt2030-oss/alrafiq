@@ -6,6 +6,7 @@ import { Mic, Brain, Target, BarChart3, Award, BookOpen, RotateCcw, Search, Gaug
 import { useStore } from '../store.js';
 import { useQuran } from '../lib/quran.js';
 import { RECITERS, reciterOf, srcOf } from '../lib/recite.js';
+import { voiceEnd } from '../lib/voiceEnd.js';
 import { micReady, hear, warmMic, micLog } from '../lib/listen.js';
 import { ayahWords, align, score } from '../lib/match.js';
 import { review, gradeOf, recall, keyOf, overview, surahStrength, label, weakest, forecast, dailyPlan, pickTest, GRADE, SURAHS } from '../lib/memory.js';
@@ -30,17 +31,31 @@ function useAyat() {
 }
 // تشغيل آية بصوت القارئ المختار (من الجهاز لو محمّلة، أو من الإنترنت)
 // near(): بتتنادي قبل آخر الآية بلحظة، عشان المايك يبدأ يجهز والشيخ لسه بيخلّص، فيبقى جاهز أول ما يسكت
-const LEAD = 0.6;
+const LEAD = 0.5;
+// بيخلّص أول ما صوت الشيخ نفسه يخلص (مش لما الملف يخلص بالسكوت اللي في آخره) — شوف voiceEnd.js
 function playAyah(rid, s, a, run, my, near) {
   return new Promise(async (res) => {
-    let fired = false; const fire = () => { if (fired) return; fired = true; try { near?.(); } catch (e) {} };
+    let fired = false, done = false, t1 = null, t2 = null;
+    const fire = () => { if (fired) return; fired = true; try { near?.(); } catch (e) {} };
+    const end = (au, d) => { if (done) return; done = true; clearTimeout(t1); clearTimeout(t2); fire(); res(d); };
     try {
       const src = await srcOf(reciterOf(rid).folder, s, a);
       if (run.n !== my) return res(0);
       const au = new Audio(src); au.preload = 'auto'; run.cur = au;
-      if (near) au.ontimeupdate = () => { if (au.duration && au.duration - au.currentTime <= LEAD) fire(); };
-      au.onended = () => { fire(); res(au.duration || 3); }; au.onerror = () => { fire(); res(0); };
-      au.play().catch(() => { fire(); res(0); });
+      let ve = null; // آخر لحظة فيها صوت الشيخ
+      const plan = () => {
+        if (done || ve == null || au.paused) return;
+        const left = (ve - au.currentTime) / (au.playbackRate || 1) * 1000;
+        clearTimeout(t1); clearTimeout(t2);
+        if (near) t1 = setTimeout(fire, Math.max(0, left - LEAD * 1000));
+        // الشيخ سكت: دورك على طول، وباقي الملف (سكوت/صدى) بيتقفل بهدوء
+        t2 = setTimeout(() => { if (done) return; try { au.pause(); } catch (e) {} end(au, ve); }, Math.max(0, left));
+      };
+      voiceEnd(src).then((v) => { if (v && v > 0.5 && (!au.duration || v < au.duration - 0.15)) { ve = v; plan(); } });
+      au.onplaying = plan; au.onseeked = plan;
+      au.ontimeupdate = () => { if (near && au.duration && au.duration - au.currentTime <= LEAD) fire(); };
+      au.onended = () => end(au, au.duration || 3); au.onerror = () => end(au, 0);
+      au.play().catch(() => end(au, 0));
     } catch (e) { fire(); res(0); }
   });
 }
