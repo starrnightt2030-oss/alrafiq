@@ -153,7 +153,7 @@ export function hear({ onText, onFail, onReady, rank, maxMs = 15000, waitMs = 70
           if (ended || listening) return;
           if (text && !mute) {
             // الطفل قال كلام وسكت: النتيجة الأخيرة بتيجي بعد ما المحرّك يقفل بشوية
-            closing = true; timers.push(setTimeout(finish, 1200));
+            closing = true; timers.push(setTimeout(finish, 700));
           } else if (!mute && ++restarts >= 4 && getMode() !== 'bg') {
             // السماع في الخلفية قفل كذا مرة من غير ولا كلمة: غالبًا مش شغال على الموبايل ده، نجرّب شباك جوجل
             switched = true; log('الخلفية مابتسمعش، هنجرّب شباك جوجل');

@@ -41,19 +41,54 @@ export const same = (a, b) => {
 // كلمات الآية للعرض: علامات الوقف اللي لوحدها بتتلزق في الكلمة اللي قبلها
 export const ayahWords = (ayah) => ayah.split(/\s+/).filter(Boolean).reduce((a, w) => { if (!norm(w) && a.length) a[a.length - 1] += ' ' + w; else a.push(w); return a; }, []);
 
-// بترجع لكل كلمة في الآية: اتقالت ولا لأ، بالترتيب، مع شوية تسامح لو الطفل نط كلمة أو المحرّك زوّد كلمة
+// ذاكرة صغيرة لنتائج same: الكلام الجزئي بيتكرر كتير وهو بيتكتب، فمانحسبش نفس المقارنة مرتين
+const memo = new Map();
+const eq = (a, b) => {
+  const k = a + '|' + b; let v = memo.get(k);
+  if (v === undefined) { v = same(a, b); if (memo.size > 6000) memo.clear(); memo.set(k, v); }
+  return v;
+};
+// لزق/تقسيم كلمتين: لازم تطابق أقوى (من غير «الهيكل» المتسامح)، عشان «الله» لوحدها ماتتحسبش «الله أحد»
+const eq2 = (a, b) => a === b || (Math.abs(a.length - b.length) <= 2 && sim(strip(a), strip(b)) >= 0.8);
+
+// بترجع لكل كلمة في الآية: اتقالت صح ولا لأ.
+// محاذاة مثالية (برمجة ديناميكية) بين كلمات الآية والكلام المسموع بدل البحث الجشع:
+// بتلاقي أحسن توافق للآية كلها مرة واحدة، فكلمة زيادة أو ناقصة أو كلمة غلط في النص مابتبوّظش باقي الآية.
+// وبتتسامح لو المحرّك قسم كلمة لاتنين أو لزق كلمتين في كلمة.
 export function align(words, heard) {
   const T = words.map(norm), H = heard.split(/\s+/).map(norm).filter(Boolean);
-  const hit = T.map(() => false);
-  let j = 0;
-  for (let i = 0; i < T.length; i++) {
-    if (!T[i]) { hit[i] = true; continue; }
-    // بندوّر في الكلمات اللي جاية (مع تسامح لو المحرّك زوّد كلمة أو قسم كلمة لاتنين أو لزق كلمتين)
-    for (let k = j; k < Math.min(H.length, j + 5); k++) {
-      if (same(T[i], H[k])) { hit[i] = true; j = k + 1; break; }
-      if (k + 1 < H.length && same(T[i], H[k] + H[k + 1])) { hit[i] = true; j = k + 2; break; }
-      if (i + 1 < T.length && T[i + 1] && same(T[i] + T[i + 1], H[k])) { hit[i] = hit[i + 1] = true; i++; j = k + 1; break; }
+  const n = T.length, m = H.length;
+  const hit = T.map((t) => !t);
+  if (!m) return hit;
+  // S[i][j] = أحسن درجة لأول i كلمة من الآية مع أول j كلمة مسموعة. W[i][j] = الخطوة اللي جابتها
+  const S = Array.from({ length: n + 1 }, () => new Float64Array(m + 1));
+  const W = Array.from({ length: n + 1 }, () => new Uint8Array(m + 1));
+  const X = -0.05; // كلمة مسموعة زيادة: عقوبة صغيرة عشان نفضّل المحاذاة المضغوطة
+  for (let j = 1; j <= m; j++) { S[0][j] = S[0][j - 1] + X; W[0][j] = 2; }
+  for (let i = 1; i <= n; i++) {
+    const t = T[i - 1];
+    S[i][0] = S[i - 1][0] + (t ? 0 : 1); W[i][0] = 1;
+    for (let j = 1; j <= m; j++) {
+      let b = S[i - 1][j] + (t ? 0 : 1), w = 1; // كلمة من الآية ماتقالتش (أو علامة وقف)
+      const c2 = S[i][j - 1] + X; if (c2 > b) { b = c2; w = 2; }
+      if (t) {
+        if (eq(t, H[j - 1])) { const c = S[i - 1][j - 1] + 1 + (t === H[j - 1] ? 0.05 : 0); if (c > b) { b = c; w = 3; } }
+        if (j >= 2 && eq2(t, H[j - 2] + H[j - 1])) { const c = S[i - 1][j - 2] + 1; if (c > b) { b = c; w = 4; } }
+        const u = i >= 2 ? T[i - 2] : '';
+        if (u && eq2(u + t, H[j - 1])) { const c = S[i - 2][j - 1] + 2; if (c > b) { b = c; w = 5; } }
+      }
+      S[i][j] = b; W[i][j] = w;
     }
+  }
+  // نرجع من الآخر لنعرف أنهي كلمات اتقالت
+  let i = n, j = m;
+  while (i > 0 || j > 0) {
+    const w = i && j ? W[i][j] : i ? 1 : 2;
+    if (w === 1) i--;
+    else if (w === 2) j--;
+    else if (w === 3) { hit[i - 1] = true; i--; j--; }
+    else if (w === 4) { hit[i - 1] = true; i--; j -= 2; }
+    else { hit[i - 1] = hit[i - 2] = true; i -= 2; j--; }
   }
   return hit;
 }
