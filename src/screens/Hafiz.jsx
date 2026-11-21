@@ -38,30 +38,57 @@ function playAyah(rid, s, a, run, my) {
     } catch (e) { res(0); }
   });
 }
+// دقة التصحيح: القيم القديمة (٠٫٨٥/٠٫٩/٠٫٩٥) بتتحوّل للجديدة الأكثر تسامحًا مع نطق المحرّك
+export const passOf = (v) => ({ 0.85: 0.75, 0.9: 0.85, 0.95: 0.92 })[v] || v || 0.85;
+// لوحة المايك: بتقول للمستخدم إمتى يسمع وإمتى يتكلم، وبتكتب كلامه قدامه أول بأول
+function MicCue({ phase, heard, hint }) {
+  if (!phase) return null;
+  const live = phase === 'live', words = (heard || '').split(/\s+/).filter(Boolean);
+  const C = live ? '#1FA36A' : phase === 'prep' ? '#E2A92B' : '#2F7BEA';
+  return (
+    <section className="card col" style={{ gap: 10, alignItems: 'center', borderColor: C, borderWidth: 2, background: `color-mix(in srgb, ${C} 6%, var(--surf))` }} aria-live="polite">
+      <div style={{ position: 'relative', width: 84, height: 84, display: 'grid', placeItems: 'center' }}>
+        {live && [0, 1].map((k) => <motion.span key={k} style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: `3px solid ${C}` }} animate={{ scale: [1, 1.6], opacity: [0.7, 0] }} transition={{ repeat: Infinity, duration: 1.4, delay: k * 0.7 }} />)}
+        <motion.span animate={live ? { scale: [1, 1.08, 1] } : phase === 'prep' ? { opacity: [1, 0.5, 1] } : {}} transition={{ repeat: Infinity, duration: live ? 1 : 0.8 }}
+          style={{ width: 72, height: 72, borderRadius: '50%', background: C, display: 'grid', placeItems: 'center', boxShadow: `0 8px 24px ${C}66` }}>
+          {phase === 'sheikh' ? <Volume2 size={32} color="#fff" /> : <Mic size={32} color="#fff" />}
+        </motion.span>
+      </div>
+      <div style={{ fontWeight: 800, fontSize: 17, color: C }}>{phase === 'sheikh' ? 'استمع للشيخ…' : phase === 'prep' ? 'لحظة… المايك بيفتح' : 'تكلّم الآن'}</div>
+      {live && hint && !words.length && <div className="xs muted">{hint}</div>}
+      {(live || words.length > 0) && phase !== 'sheikh' && <div className="card" style={{ width: '100%', minHeight: 54, background: 'var(--surf2)', padding: '10px 12px', textAlign: 'center', fontSize: 19, lineHeight: 1.9, fontFamily: "'KFGQPC Hafs', Amiri, serif" }}>
+        {words.length ? words.map((w, k) => <motion.span key={k + w} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18 }}>{w} </motion.span>) : <span className="xs muted" style={{ fontFamily: 'inherit' }}>كلامك هيظهر هنا وأنت بتقرأ…</span>}
+      </div>}
+    </section>
+  );
+}
 const Pill = ({ c, children }) => <span className="xs" style={{ padding: '2px 10px', borderRadius: 999, background: c + '22', color: c, fontWeight: 700 }}>{children}</span>;
 
 // ======================= جلسة: حفظ / تسميع / مراجعة =======================
 function Session({ mode, s, from, to, by }) {
   const { mem, memAyah, memLog, memCert, hifz, updateHifz, rufaqa } = useStore();
-  const P = mem.prefs, PASS = P.strict || 0.9;
+  const P = mem.prefs, PASS = passOf(P.strict);
   const list = (by[s] || []).filter((x) => x.a >= from && x.a <= to);
   const hidden = mode !== 'learn';
-  const [i, setI] = useState(-1), [hits, setHits] = useState({}), [heard, setHeard] = useState(''), [note, setNote] = useState(null), [turn, setTurn] = useState(false), [res, setRes] = useState([]), [fin, setFin] = useState(false), [mic, setMic] = useState('unk'), [manual, setManual] = useState(null), [cert, setCert] = useState(null);
+  const [i, setI] = useState(-1), [hits, setHits] = useState({}), [heard, setHeard] = useState(''), [note, setNote] = useState(null), [turn, setTurn] = useState(false), [res, setRes] = useState([]), [fin, setFin] = useState(false), [mic, setMic] = useState('unk'), [manual, setManual] = useState(null), [cert, setCert] = useState(null), [phase, setPhase] = useState(null);
   const run = useRef({ n: 0, cur: null, ear: null, man: null });
   const alive = (my) => run.current.n === my;
-  const stop = () => { run.current.n++; try { run.current.cur?.pause(); } catch (e) {} run.current.ear?.stop(); run.current.man?.(null); setTurn(false); };
+  const stop = () => { run.current.n++; try { run.current.cur?.pause(); } catch (e) {} run.current.ear?.stop(); run.current.man?.(null); setTurn(false); setPhase(null); };
   useEffect(() => { micReady().then((m) => { setMic(m); if (m === 'ok') warmMic(); }); return stop; }, []);
   const listenAyah = async (x, my) => {
     const words = ayahWords(x.t); const ctx = { all: '' }; let best = words.map(() => false);
     setHeard(''); setHits((h) => ({ ...h, [x.a]: best }));
     for (let round = 0; round < 3 && alive(my); round++) {
-      const ear = hear({ waitMs: round ? 4000 : 8000, maxMs: 9000 + words.length * 800, onText: (t) => { const txt = (ctx.all + ' ' + t).trim(); setHeard(txt); const h = align(words, txt); setHits((o) => ({ ...o, [x.a]: h })); if (score(h) >= 0.97) ear.stop(); } });
+      setPhase(round ? 'live' : 'prep');
+      const ear = hear({ waitMs: round ? 4000 : 8000, maxMs: 9000 + words.length * 800, onReady: () => alive(my) && setPhase('live'),
+        rank: (t) => score(align(words, ctx.all + ' ' + t)),
+        onText: (t) => { const txt = (ctx.all + ' ' + t).trim(); setHeard(txt); const h = align(words, txt); setHits((o) => ({ ...o, [x.a]: h })); if (score(h) >= 0.97) ear.stop(); } });
       run.current.ear = ear; const t = await ear.promise; run.current.ear = null;
       if (!t) break;
       ctx.all = (ctx.all + ' ' + t).trim(); best = align(words, ctx.all);
       if (score(best) >= 0.97) break;
     }
-    setHits((o) => ({ ...o, [x.a]: best }));
+    setHits((o) => ({ ...o, [x.a]: best })); setPhase(null);
     return { acc: score(best), missed: best.map((h, j) => (h ? -1 : j)).filter((j) => j >= 0), said: !!ctx.all, words };
   };
   // بدون مايك: تقييم ذاتي بزرّين
@@ -82,7 +109,7 @@ function Session({ mode, s, from, to, by }) {
       for (let rep = 0; rep < reps; rep++) {
         for (tries = 1; tries <= (mode === 'learn' ? 3 : 2); tries++) {
           if (!alive(my)) return;
-          if (mode === 'learn') { setTurn(false); await playAyah(P.reciter, s, x.a, run.current, my); if (!alive(my)) return; }
+          if (mode === 'learn') { setTurn(false); setHeard(''); setPhase('sheikh'); await playAyah(P.reciter, s, x.a, run.current, my); if (!alive(my)) return; }
           setTurn(true);
           if (!useMic) { const ok = await askManual(); setManual(null); if (ok === null || !alive(my)) return; acc = ok ? 1 : 0.5; break; }
           const r = await listenAyah(x, my); if (!alive(my)) return;
@@ -94,8 +121,8 @@ function Session({ mode, s, from, to, by }) {
         if (acc < PASS) break;
       }
       const ok = acc >= PASS; tries = Math.min(tries, 3);
-      if (!ok && hidden) { setNote({ ok: false, t: 'استمع للآية صحيحة' }); setHits((h) => ({ ...h, [x.a]: ayahWords(x.t).map(() => true) })); await playAyah(P.reciter, s, x.a, run.current, my); }
-      const g = record(x, acc, tries, missed);
+      if (!ok && hidden) { setNote({ ok: false, t: 'استمع للآية صحيحة' }); setHits((h) => ({ ...h, [x.a]: ayahWords(x.t).map(() => true) })); setPhase('sheikh'); await playAyah(P.reciter, s, x.a, run.current, my); }
+      setPhase(null); const g = record(x, acc, tries, missed);
       out.push({ a: x.a, acc, ok, g }); setRes([...out]);
       if (!alive(my)) return;
       await wait(400);
@@ -111,6 +138,7 @@ function Session({ mode, s, from, to, by }) {
     }
   };
   const x = list[i];
+  useEffect(() => { if (x) document.getElementById('ay-' + x.a)?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, [i]);
   const title = { learn: 'حفظ بالترديد', recite: 'تسميع', review: 'مراجعة' }[mode];
   return (
     <div className="screen no-nav">
@@ -122,7 +150,7 @@ function Session({ mode, s, from, to, by }) {
       {(i >= 0 || fin) && <section className="card col" style={{ gap: 6 }}>
         {list.map((y) => { const h = hits[y.a], cur = x && x.a === y.a, r = res.find((z) => z.a === y.a), show = !hidden || r || (h && h.some(Boolean));
           return (
-            <div key={y.a} style={{ padding: '4px 8px', borderRadius: 12, background: cur ? 'color-mix(in srgb, var(--acc) 10%, transparent)' : 'transparent', opacity: !cur && i >= 0 && !r ? 0.55 : 1 }}>
+            <div key={y.a} id={'ay-' + y.a} style={{ padding: '4px 8px', borderRadius: 12, background: cur ? 'color-mix(in srgb, var(--acc) 10%, transparent)' : 'transparent', opacity: !cur && i >= 0 && !r ? 0.55 : 1 }}>
               <span className="mushaf" style={{ fontFamily: "'KFGQPC Hafs', Amiri, serif", fontSize: 23, lineHeight: 2.1 }}>
                 {ayahWords(y.t).map((w, j) => { const on = h?.[j]; return <span key={j} style={{ color: on ? 'var(--acc)' : 'inherit', background: on ? 'color-mix(in srgb, var(--acc) 14%, transparent)' : 'transparent', borderRadius: 6, filter: show || on ? 'none' : 'blur(6px)', transition: 'all .2s' }}>{w} </span>; })}
                 <span className="accent" style={{ fontSize: 17 }}>﴿{ar(y.a)}﴾</span>
@@ -131,7 +159,7 @@ function Session({ mode, s, from, to, by }) {
             </div>
           ); })}
       </section>}
-      {turn && !manual && <div className="card center" style={{ borderColor: '#E2A92B' }}><motion.span animate={{ scale: [1, 1.25, 1] }} transition={{ repeat: Infinity, duration: 1 }} style={{ display: 'inline-flex' }}><Mic size={22} className="accent" /></motion.span><div className="small" style={{ fontWeight: 700 }}>{hidden ? 'اقرأ الآية من حفظك…' : 'ردّد الآية…'}</div>{heard && <div className="small muted">«{heard}»</div>}</div>}
+      {!manual && phase && <div style={{ position: 'sticky', bottom: 10, zIndex: 5 }}><MicCue phase={phase} heard={heard} hint={hidden ? 'اقرأ الآية من حفظك' : 'ردّد الآية كما سمعتها من الشيخ'} /></div>}
       {manual && <div className="card col" style={{ gap: 8 }}><div className="small" style={{ fontWeight: 700 }}>اقرأ الآية ثم قيّم نفسك:</div><div className="grid2"><button className="btn" onClick={() => run.current.man?.(true)}>قرأتها صحيحة</button><button className="btn soft" onClick={() => run.current.man?.(false)}>أخطأت فيها</button></div></div>}
       {note && <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="card center small" style={{ fontWeight: 700, color: note.ok ? '#1FA36A' : '#C2410C', borderColor: note.ok ? '#1FA36A' : '#E0507A' }}>{note.t}</motion.div>}
       {i >= 0 && <button className="btn ghost" onClick={() => { stop(); setI(-1); }}><Square size={16} /> إيقاف</button>}
@@ -189,23 +217,79 @@ function Pick({ mode, by }) {
   );
 }
 
+// ======================= نطاق الاختبار: سورة / سور / جزء / كل المحفوظ =======================
+const juzOf = (by, s, a) => by[s]?.[a - 1]?.j || 0;
+// كل آيات النطاق: [{ s, a }]
+function scopeAyat(sc, by, ayat) {
+  if (sc.all) return Object.keys(ayat).map((k) => { const [s, a] = k.split(':').map(Number); return { s, a }; });
+  const out = [];
+  if (sc.surahs) for (const s of sc.surahs) for (let a = 1; a <= SURAHS[s - 1].ayahs; a++) out.push({ s, a });
+  if (sc.juz) { const J = new Set(sc.juz); for (let s = 1; s <= 114; s++) for (const x of by[s] || []) if (J.has(x.j)) out.push({ s, a: x.a }); }
+  return out;
+}
+function ScopePick({ kind, onPick }) {
+  const { mem } = useStore();
+  const [tab, setTab] = useState(kind === 'test' ? 'all' : 'juz'), [sel, setSel] = useState([]), [q, setQ] = useState(''), [n, setN] = useState(10);
+  const memSurahs = useMemo(() => new Set(Object.keys(mem.ayat).map((k) => +k.split(':')[0])), [mem.ayat]);
+  const strip = (x) => x.replace(/[ً-ٰٟۖ-ۭ]/g, '').replace(/[أإآٱ]/g, 'ا').replace(/ة/g, 'ه');
+  const list = useMemo(() => { const k = strip(q.trim()); let L = k ? SURAHS.filter((x) => strip(x.name).includes(k)) : [...SURAHS].reverse(); if (!k) L = [...L.filter((x) => memSurahs.has(x.n)), ...L.filter((x) => !memSurahs.has(x.n))]; return L; }, [q, memSurahs]);
+  const tog = (v) => setSel((o) => (o.includes(v) ? o.filter((x) => x !== v) : [...o, v]));
+  const tabs = [...(kind === 'test' ? [['all', 'كل محفوظي']] : []), ['surah', 'سورة أو أكثر'], ['juz', 'جزء أو أكثر']];
+  const label = tab === 'all' ? 'كل محفوظك' : tab === 'surah' ? (sel.length === 1 ? 'سورة ' + sname(sel[0]) : `${ar(sel.length)} سور`) : (sel.length === 1 ? 'الجزء ' + ar(sel[0]) : `${ar(sel.length)} أجزاء`);
+  const ready = tab === 'all' ? Object.keys(mem.ayat).length >= 4 : sel.length > 0;
+  const go_ = () => onPick({ label, n, all: tab === 'all' || undefined, surahs: tab === 'surah' ? [...sel].sort((a, b) => a - b) : undefined, juz: tab === 'juz' ? [...sel].sort((a, b) => a - b) : undefined });
+  return (
+    <>
+      <div className="card small" style={{ lineHeight: 1.9 }}>{kind === 'test' ? 'اختر ما تريد أن تُختبر فيه: كل محفوظك، أو سورة معيّنة (أو عدة سور)، أو جزءًا معيّنًا. يقرأ القارئ آية وتُكمل أنت التي بعدها، والأسئلة تصعب كلما أصبت.' : 'اختر ما تريد تحديد مستواك فيه: سورة معيّنة أو أكثر، أو جزءًا أو أكثر. يقرأ القارئ آية وتُكمل التي بعدها من حفظك، وإن لم تحفظ السورة اضغط «لا أحفظها».'}</div>
+      <div className="row" style={{ gap: 6 }}>{tabs.map(([k, l]) => <button key={k} className={'chip' + (tab === k ? ' on' : '')} style={{ flex: 1, minHeight: 42 }} onClick={() => { setTab(k); setSel([]); }}>{l}</button>)}</div>
+      {tab === 'all' && <div className="card small" style={{ lineHeight: 1.9 }}>{Object.keys(mem.ayat).length >= 4 ? `في سجلك ${ar(memSurahs.size)} سورة — الأسئلة تركّز على الآيات الأضعف عندك.` : 'لا توجد آيات محفوظة في سجلك بعد. اختر سورة أو جزءًا، أو أجرِ «تحديد المستوى» أولًا.'}</div>}
+      {tab === 'juz' && <section className="card"><div className="xs muted" style={{ marginBottom: 8 }}>اختر جزءًا أو أكثر</div><div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0,1fr))', gap: 6 }}>{Array.from({ length: 30 }, (_, k) => 30 - k).map((j) => <button key={j} className={'chip' + (sel.includes(j) ? ' on' : '')} style={{ minHeight: 42, padding: 0 }} onClick={() => tog(j)}>{ar(j)}</button>)}</div>
+        <div className="row" style={{ gap: 6, marginTop: 8, flexWrap: 'wrap' }}>{[['عمّ', [30]], ['تبارك', [29]], ['آخر جزأين', [29, 30]], ['آخر ٥ أجزاء', [26, 27, 28, 29, 30]]].map(([l, v]) => <button key={l} className="chip" onClick={() => setSel(v)}>{l}</button>)}</div></section>}
+      {tab === 'surah' && <>
+        <label className="card row" style={{ padding: '0 14px', minHeight: 46 }}><Search size={18} className="muted" aria-hidden="true" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ابحث باسم السورة" style={{ flex: 1, border: 0, outline: 0, background: 'transparent', minHeight: 44 }} /></label>
+        {sel.length > 0 && <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>{sel.map((v) => <button key={v} className="chip on" onClick={() => tog(v)}>{sname(v)} ✕</button>)}</div>}
+        <section className="card col" style={{ gap: 4, maxHeight: 330, overflowY: 'auto', padding: 8 }}>
+          {list.map((x) => { const on = sel.includes(x.n); return <button key={x.n} onClick={() => tog(x.n)} className="row" style={{ padding: '9px 10px', borderRadius: 12, border: 0, textAlign: 'right', background: on ? 'color-mix(in srgb, var(--acc) 14%, transparent)' : 'transparent' }}>
+            {on ? <CheckCircle2 size={20} className="accent" /> : <span style={{ width: 20, height: 20, borderRadius: '50%', border: '2px solid var(--line)' }} />}
+            <span className="amiri" style={{ flex: 1, fontSize: 17, fontWeight: 700 }}>سورة {x.name}</span>{memSurahs.has(x.n) && <Pill c="#1FA36A">في سجلك</Pill>}<span className="xs muted">{ar(x.ayahs)} آية</span></button>; })}
+        </section></>}
+      <div className="row" style={{ gap: 6 }}><span className="xs muted">عدد الأسئلة</span>{[5, 10, 15, 20].map((v) => <button key={v} className={'chip' + (n === v ? ' on' : '')} style={{ flex: 1 }} onClick={() => setN(v)}>{ar(v)}</button>)}</div>
+      <button className="btn" style={{ minHeight: 54, fontSize: 16 }} disabled={!ready} onClick={go_}><Mic size={20} /> {ready ? `ابدأ: ${label}` : 'اختر النطاق أولًا'}</button>
+    </>
+  );
+}
+
 // ======================= الاختبار الذكي (تكيّفي) / تحديد المستوى =======================
 // كل سؤال: القارئ يقرأ آية والمختبَر يُكمل التي بعدها (أو يقرأ آية برقمها في المستوى الأصعب).
 // الصعوبة تتكيّف: إجابتان صحيحتان متتاليتان ترفعان المستوى، والخطأ يخفضه.
 function Quiz({ kind, by }) {
   const { mem, memAyah, memMany, memLog, memCert, rufaqa, hifz, updateHifz } = useStore();
-  const P = mem.prefs, PASS = Math.min(P.strict || 0.9, 0.88);
-  const SCOPES = [['جزء عمّ', 78, 114], ['جزء تبارك', 67, 77], ['جزء قد سمع', 58, 66], ['الأجزاء ٢٦–٣٠', 46, 114], ['القرآن كاملًا (عينة)', 1, 114]];
+  const P = mem.prefs, PASS = Math.min(passOf(P.strict), 0.85);
   const [scope, setScope] = useState(null);
+  const pool = useMemo(() => (scope ? scopeAyat(scope, by, mem.ayat).filter((x) => x.a > 1) : []), [scope]);
   const items = useMemo(() => {
-    if (kind === 'test') return pickTest(mem.ayat, 12);
     if (!scope) return [];
-    // تحديد المستوى: من كل سورة في النطاق آية أو آيتان (من أولها وآخرها للسور الطويلة)
-    const out = []; const step = scope[2] - scope[1] > 60 ? 3 : 1;
-    for (let s = scope[2]; s >= scope[1]; s -= step) { const N = SURAHS[s - 1].ayahs; if (N < 2) continue; out.push({ s, a: 2 + Math.floor(Math.random() * Math.min(N - 1, N > 20 ? 10 : N - 1)) }); if (N > 20) out.push({ s, a: N - Math.floor(Math.random() * 6) }); }
+    const now = Date.now(), n = scope.n || 10;
+    if (kind === 'test') {
+      // اختيار موزون: الآيات الأضعف في سجلك فرصتها أكبر، والآيات اللي مش في سجلك فرصتها متوسطة
+      const P0 = pool.map((x) => { const m = mem.ayat[keyOf(x.s, x.a)]; return { ...x, w: m ? 0.15 + (1 - recall(m, now)) : 0.5 }; });
+      const out = [];
+      while (out.length < n && P0.length) { const sum = P0.reduce((t, x) => t + x.w, 0); let r = Math.random() * sum, k = 0; while (r > P0[k].w && k < P0.length - 1) { r -= P0[k].w; k++; } out.push(P0[k]); P0.splice(k, 1); }
+      return out;
+    }
+    // تحديد المستوى: لو سور كتير، آية أو آيتين من كل سورة؛ لو سورة أو اتنين، أسئلة موزّعة على السورة كلها
+    const groups = {}; pool.forEach((x) => (groups[x.s] ||= []).push(x));
+    const G = Object.keys(groups).map(Number).sort((a, b) => b - a), out = [];
+    if (G.length * 2 <= n) {
+      const per = Math.max(1, Math.floor(n / G.length));
+      for (const s of G) { const L = groups[s], k = Math.min(per, L.length); for (let q = 0; q < k; q++) { const lo = Math.floor((q * L.length) / k), hi = Math.floor(((q + 1) * L.length) / k); out.push(L[lo + Math.floor(Math.random() * Math.max(1, hi - lo))]); } }
+    } else {
+      const step = G.length > 45 ? 3 : 1;
+      for (let g = 0; g < G.length; g += step) { const L = groups[G[g]]; out.push(L[Math.floor(Math.random() * Math.min(L.length, 10))]); if (L.length > 20) out.push(L[L.length - 1 - Math.floor(Math.random() * 6)]); }
+    }
     return out;
   }, [scope]);
-  const [i, setI] = useState(-1), [lv, setLv] = useState(1), [hits, setHits] = useState(null), [heard, setHeard] = useState(''), [note, setNote] = useState(null), [turn, setTurn] = useState(false), [res, setRes] = useState([]), [fin, setFin] = useState(false), [cert, setCert] = useState(null), [applied, setApplied] = useState(false);
+  const [i, setI] = useState(-1), [lv, setLv] = useState(1), [hits, setHits] = useState(null), [heard, setHeard] = useState(''), [note, setNote] = useState(null), [turn, setTurn] = useState(false), [res, setRes] = useState([]), [fin, setFin] = useState(false), [cert, setCert] = useState(null), [applied, setApplied] = useState(false), [phase, setPhase] = useState(null);
   const run = useRef({ n: 0, cur: null, ear: null, skip: null });
   const alive = (my) => run.current.n === my;
   useEffect(() => { micReady().then((m) => m === 'ok' && warmMic()); return () => { run.current.n++; try { run.current.cur?.pause(); } catch (e) {} run.current.ear?.stop(); }; }, []);
@@ -213,65 +297,67 @@ function Quiz({ kind, by }) {
     const my = ++run.current.n; const out = []; let level = 1, streak = 0; setRes([]); setFin(false);
     const m = await Promise.race([micReady(), wait(3000).then(() => 'unk')]);
     if (m !== 'ok') { setNote({ ok: false, t: 'الاختبار يحتاج المايك — اسمح للتطبيق باستخدامه ثم أعد المحاولة' }); return; }
+    const skipped = new Set();
     for (let q = 0; q < items.length; q++) {
       if (!alive(my)) return;
       const it = items[q], ayat = by[it.s]; const x = ayat[it.a - 1], prev = ayat[it.a - 2]; const words = ayahWords(x.t);
       const qk = kind === 'test' && level === 3 ? 'start' : 'next';
+      // في تحديد المستوى: لو قال «لا أحفظ هذه السورة» نعدّي باقي أسئلتها
+      if (kind === 'placement' && skipped.has(it.s)) { out.push({ ...it, ok: false, acc: 0, level, skip: true }); setRes([...out]); continue; }
       setI(q); setLv(level); setHits(words.map(() => false)); setHeard(''); setNote(null); setTurn(false);
-      if (qk === 'next') await playAyah(P.reciter, it.s, prev.a, run.current, my);
+      if (qk === 'next') { setPhase('sheikh'); await playAyah(P.reciter, it.s, prev.a, run.current, my); }
       if (!alive(my)) return;
       setTurn(true);
       const ctx = { all: '' }; let best = words.map(() => false);
       for (let round = 0; round < 2 && alive(my); round++) {
         const skipP = new Promise((r) => { run.current.skip = r; });
-        const ear = hear({ waitMs: round ? 4000 : 9000, maxMs: 10000 + words.length * 800, onText: (t) => { const txt = (ctx.all + ' ' + t).trim(); setHeard(txt); const h = align(words, txt); setHits(h); if (score(h) >= 0.97) ear.stop(); } });
+        setPhase(round ? 'live' : 'prep');
+        const ear = hear({ waitMs: round ? 4000 : 9000, maxMs: 10000 + words.length * 800, onReady: () => alive(my) && setPhase('live'), rank: (t) => score(align(words, ctx.all + ' ' + t)), onText: (t) => { const txt = (ctx.all + ' ' + t).trim(); setHeard(txt); const h = align(words, txt); setHits(h); if (score(h) >= 0.97) ear.stop(); } });
         run.current.ear = ear; const t = await Promise.race([ear.promise, skipP.then(() => { ear.stop(); return null; })]); run.current.ear = null;
         if (t === null) { ctx.skip = true; break; }
         if (!t) break; ctx.all = (ctx.all + ' ' + t).trim(); best = align(words, ctx.all); if (score(best) >= 0.97) break;
       }
       if (!alive(my)) return;
-      setTurn(false);
+      setTurn(false); setPhase(null);
+      if (ctx.skip && kind === 'placement') skipped.add(it.s);
       const acc = ctx.skip ? 0 : score(best), ok = acc >= PASS;
       setHits(words.map(() => true));
       if (kind === 'test') { const k = keyOf(it.s, it.a); memAyah(k, review(useStore.getState().mem.ayat[k], gradeOf(acc, 1), best.map((h, j) => (h ? -1 : j)).filter((j) => j >= 0))); }
       out.push({ ...it, ok, acc, level }); setRes([...out]);
       if (ok) { setNote({ ok: true, t: 'أحسنت، بارك الله فيك' }); streak++; if (kind === 'test' && streak >= 2 && level < 3) { level++; streak = 0; } await wait(900); }
-      else { setNote({ ok: false, t: ctx.skip ? 'تم التخطّي' : 'استمع للآية صحيحة' }); streak = 0; if (kind === 'test' && level > 1) level--; if (!ctx.skip) await playAyah(P.reciter, it.s, it.a, run.current, my); }
+      else { setNote({ ok: false, t: ctx.skip ? 'تم التخطّي' : 'استمع للآية صحيحة' }); streak = 0; if (kind === 'test' && level > 1) level--; if (!ctx.skip) { setPhase('sheikh'); await playAyah(P.reciter, it.s, it.a, run.current, my); setPhase(null); } }
     }
     if (!alive(my)) return;
     setI(-1); setFin(true);
     const W = out.reduce((t, r) => t + r.level, 0), got = out.reduce((t, r) => t + (r.ok ? r.level : 0), 0), sc = W ? got / W : 0;
     memLog('tests', { kind, n: out.length, ok: out.filter((r) => r.ok).length, score: sc, pts: out.filter((r) => r.ok).length * 3 });
     if (kind === 'test' && sc >= 0.8) { const per = {}; out.forEach((r) => { per[r.s] = per[r.s] || [0, 0]; per[r.s][1]++; if (r.ok) per[r.s][0]++; });
-      const c = { id: 'test-' + Date.now(), kind: 'test', title: 'شهادة اختبار الحفظ', name: P.name || rufaqa.name || 'القارئ', verb: 'اجتاز الاختبار الذكي في حفظ', main: `${ar(Object.keys(per).length)} ${Object.keys(per).length > 2 ? 'سور' : 'سورة'} من القرآن الكريم`, sub: `النتيجة ${pct(sc)}`, lines: Object.entries(per).slice(0, 10).map(([s, [a, b]]) => ['سورة ' + sname(+s), `${ar(a)} من ${ar(b)}`, a === b ? '#1F7A55' : '#B8892B']), grade: sc >= 0.95 ? 'ممتاز' : sc >= 0.88 ? 'جيد جدًا' : 'جيد', at: Date.now() };
+      const c = { id: 'test-' + Date.now(), kind: 'test', title: 'شهادة اختبار الحفظ', name: P.name || rufaqa.name || 'القارئ', verb: 'اجتاز الاختبار الذكي في حفظ', main: scope.all ? `${ar(Object.keys(per).length)} ${Object.keys(per).length > 2 ? 'سور' : 'سورة'} من القرآن الكريم` : scope.label.replace('كل محفوظك', 'محفوظه'), sub: `النتيجة ${pct(sc)}`, lines: Object.entries(per).slice(0, 10).map(([s, [a, b]]) => ['سورة ' + sname(+s), `${ar(a)} من ${ar(b)}`, a === b ? '#1F7A55' : '#B8892B']), grade: sc >= 0.95 ? 'ممتاز' : sc >= 0.88 ? 'جيد جدًا' : 'جيد', at: Date.now() };
       memCert(c); setCert(c); }
   };
   // اعتماد نتيجة تحديد المستوى: السور المحفوظة تُضاف لنموذج الذاكرة (والجزئية بثبات أقل لتظهر في المراجعة قريبًا)
   const known = useMemo(() => { const per = {}; res.forEach((r) => { per[r.s] = per[r.s] || [0, 0]; per[r.s][1]++; if (r.ok) per[r.s][0]++; }); return per; }, [res]);
   const apply = () => {
     const upd = {}, pages = {}, now = Date.now();
-    for (const [s0, [a, b]] of Object.entries(known)) { const s = +s0; if (!a) continue; const full = a === b; const N = SURAHS[s - 1].ayahs;
-      for (let k = 1; k <= N; k++) { const key = keyOf(s, k); if (mem.ayat[key]) continue; const S = full ? 6 : 1.2; upd[key] = { S, D: full ? 4.5 : 6.5, last: now - S * 0.5 * 86400000, due: now + (full ? 2 + (k % 5) : 1) * 86400000, n: 0, lapses: 0, acc: [], w: {}, first: now, est: true }; }
-      if (full) { const r = surahPages(s); for (let p = r.from; p <= r.to; p++) if (!isMem(hifz.pages[p])) pages[p] = firstMemorize(); } }
+    const inScope = {}; scopeAyat(scope, by, mem.ayat).forEach((x) => (inScope[x.s] ||= []).push(x.a));
+    for (const [s0, [a, b]] of Object.entries(known)) { const s = +s0; if (!a) continue; const full = a === b; const N = SURAHS[s - 1].ayahs; const A = inScope[s] || [];
+      for (const k of A) { const key = keyOf(s, k); if (mem.ayat[key]) continue; const S = full ? 6 : 1.2; upd[key] = { S, D: full ? 4.5 : 6.5, last: now - S * 0.5 * 86400000, due: now + (full ? 2 + (k % 5) : 1) * 86400000, n: 0, lapses: 0, acc: [], w: {}, first: now, est: true }; }
+      if (full && A.length === N) { const r = surahPages(s); for (let p = r.from; p <= r.to; p++) if (!isMem(hifz.pages[p])) pages[p] = firstMemorize(); } }
     memMany(upd); if (Object.keys(pages).length) updateHifz(pages); setApplied(true);
   };
   const it = items[i], x = it && by[it.s][it.a - 1], prev = it && by[it.s][it.a - 2];
-  if (kind === 'placement' && !scope) return (
+  if (!scope) return (
     <div className="screen no-nav">
-      <TopBar title="تحديد المستوى" sub="اختبار سريع لمعرفة ما تحفظه" fallback="/hafiz" />
-      <div className="card small" style={{ lineHeight: 1.9 }}>يقرأ القارئ آية من كل سورة، وتُكمل أنت الآية التي بعدها من حفظك. إن لم تكن تحفظ سورة اضغط «لا أحفظها». في النهاية تعرف مستواك ويُبنى لك جدول مراجعة تلقائيًا.</div>
-      {SCOPES.map((sc) => <button key={sc[0]} className="card row" style={{ padding: 14, textAlign: 'right' }} onClick={() => setScope(sc)}><Gauge size={20} className="accent" /><span style={{ flex: 1, fontWeight: 700 }}>{sc[0]}</span><span className="xs muted">من {sname(sc[1])} إلى {sname(sc[2])}</span></button>)}
+      <TopBar title={kind === 'test' ? 'الاختبار الذكي' : 'تحديد المستوى'} sub="اختر نطاق الاختبار" fallback="/hafiz" />
+      <ScopePick kind={kind} onPick={setScope} />
     </div>
-  );
-  if (kind === 'test' && items.length < 4) return (
-    <div className="screen no-nav"><TopBar title="الاختبار الذكي" fallback="/hafiz" /><div className="card small" style={{ lineHeight: 1.9 }}>يحتاج الاختبار إلى آيات محفوظة في سجلك. سمّع بعض السور أو أجرِ «تحديد المستوى» أولًا.</div><button className="btn" onClick={() => go('/hafiz/placement')}>تحديد المستوى</button></div>
   );
   const okN = res.filter((r) => r.ok).length;
   return (
     <div className="screen no-nav">
-      <TopBar title={kind === 'test' ? 'الاختبار الذكي' : 'تحديد المستوى: ' + scope[0]} sub={`${ar(items.length)} سؤالًا`} fallback="/hafiz" />
+      <TopBar title={(kind === 'test' ? 'الاختبار الذكي: ' : 'تحديد المستوى: ') + scope.label} sub={`${ar(items.length)} سؤالًا`} fallback="/hafiz" />
       {cert && <Cert c={cert} onClose={() => setCert(null)} />}
-      {!fin && i < 0 && <button className="btn" style={{ minHeight: 56, fontSize: 16 }} onClick={begin}><Mic size={20} /> ابدأ</button>}
+      {!fin && i < 0 && <><button className="btn" style={{ minHeight: 56, fontSize: 16 }} onClick={begin}><Mic size={20} /> ابدأ</button><button className="btn ghost" onClick={() => setScope(null)}>غيّر النطاق</button></>}
       {i >= 0 && <div className="row" style={{ gap: 3 }}>{items.map((_, k) => <span key={k} style={{ flex: 1, height: 6, borderRadius: 3, background: k < i ? (res[k]?.ok ? 'var(--acc)' : '#E0507A') : k === i ? '#E2A92B' : 'var(--line)' }} />)}</div>}
       {it && <>
         <div className="between"><span className="small" style={{ fontWeight: 700 }}>سورة {sname(it.s)}</span>{kind === 'test' && <Pill c={['', '#1FA36A', '#2F7BEA', '#8B5CF6'][lv]}>المستوى {ar(lv)}</Pill>}</div>
@@ -280,8 +366,8 @@ function Quiz({ kind, by }) {
         <section className="card center" style={{ borderStyle: 'dashed', borderColor: 'var(--acc)' }}>
           <div className="small accent" style={{ fontWeight: 700 }}>{turn ? 'أكمل من حفظك…' : `الآية ${ar(it.a)}`}</div>
           <div style={{ fontFamily: "'KFGQPC Hafs', Amiri, serif", fontSize: 22, lineHeight: 2 }}>{ayahWords(x.t).map((w, j) => <span key={j} style={{ color: hits?.[j] ? 'var(--acc)' : 'inherit', filter: hits?.[j] || (kind === 'test' && lv === 1 && j === 0) ? 'none' : 'blur(6px)', transition: 'all .2s' }}>{w} </span>)}</div>
-          {heard && <div className="xs muted">«{heard}»</div>}
         </section>
+        <MicCue phase={phase} heard={heard} hint="أكمل الآية التالية من حفظك" />
         {turn && <button className="btn ghost" onClick={() => run.current.skip?.()}>{kind === 'placement' ? 'لا أحفظ هذه السورة' : 'تخطَّ'}</button>}
       </>}
       {note && <div className="card center small" style={{ fontWeight: 700, color: note.ok ? '#1FA36A' : '#C2410C' }}>{note.t}</div>}
@@ -292,6 +378,7 @@ function Quiz({ kind, by }) {
           {Object.entries(known).map(([s, [a, b]]) => <div key={s} className="row small"><span className="amiri" style={{ flex: 1, fontSize: 17 }}>سورة {sname(+s)}</span><Pill c={a === b ? '#1FA36A' : a ? '#E2A92B' : '#E0507A'}>{a === b ? 'محفوظة' : a ? 'جزئيًا' : 'غير محفوظة'}</Pill></div>)}
           {!applied ? <button className="btn" onClick={apply}>اعتمد النتيجة وابنِ جدول المراجعة</button> : <div className="small accent" style={{ fontWeight: 700 }}>تم — أُضيفت السور المحفوظة إلى خطتك.</div>}
         </>}
+        {kind === 'test' && <button className="btn" onClick={() => { setFin(false); setRes([]); setScope({ ...scope }); }}>اختبار جديد في نفس النطاق</button>}
         {kind === 'test' && res.some((r) => !r.ok) && <div className="small" style={{ color: '#C2410C', lineHeight: 1.8 }}>آيات تحتاج مراجعة: {res.filter((r) => !r.ok).map((r) => `${sname(r.s)} ${ar(r.a)}`).join('، ')}</div>}
         <button className="btn soft" onClick={() => go('/hafiz')}>لوحة الحفظ</button>
       </section>}
@@ -364,20 +451,26 @@ function Dashboard() {
   const tiles = [
     ['/hafiz/pick/learn', BookOpen, 'احفظ بالترديد', 'القارئ يقرأ وتردّد بصوتك'],
     ['/hafiz/pick/recite', Mic, 'سمّع من حفظك', 'الآيات مخفية وتظهر مع قراءتك'],
-    ['/hafiz/test', Brain, 'الاختبار الذكي', 'أسئلة تتكيّف مع مستواك'],
-    ['/hafiz/placement', Gauge, 'تحديد المستوى', 'اعرف ما تحفظه في دقائق'],
+    ['/hafiz/test', Brain, 'الاختبار الذكي', 'في سورة أو جزء أو كل محفوظك'],
+    ['/hafiz/placement', Gauge, 'تحديد المستوى', 'في سورة أو جزء تختاره'],
     ['/hafiz/report', BarChart3, 'التقرير', 'قوة الحفظ والأخطاء والتوقعات'],
     ['/hafiz/certs', Award, 'شهاداتي', `${ar((mem.certs || []).length)} شهادة`],
   ];
   return (
     <div className="screen no-nav">
-      <TopBar title="الحفظ الذكي" sub="احفظ وسمّع واختبر بصوتك" fallback="/hifz" right={<button className="icon-btn" aria-label="إعدادات" onClick={() => setOpt(!opt)}><Settings2 size={19} /></button>} />
+      <TopBar title="الحفظ الذكي" sub="احفظ وسمّع واختبر بصوتك" fallback="/" right={<button className="icon-btn" aria-label="إعدادات" onClick={() => setOpt(!opt)}><Settings2 size={19} /></button>} />
       <AnimatePresence>{opt && <motion.section initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="card col" style={{ gap: 12 }}>
         <div className="col" style={{ gap: 6 }}><span className="xs muted">القارئ</span><select value={mem.prefs.reciter} onChange={(e) => memPrefs({ reciter: e.target.value })} className="card" style={{ padding: 10 }}>{RECITERS.map((r) => <option key={r.id} value={r.id}>{r.name} — {r.style}</option>)}</select></div>
         <div className="col" style={{ gap: 6 }}><span className="xs muted">تكرار كل آية عند الحفظ</span><div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0,1fr))', gap: 6 }}>{[1, 2, 3, 4, 5].map((n) => <button key={n} className={'chip' + ((mem.prefs.reps || 1) === n ? ' on' : '')} onClick={() => memPrefs({ reps: n })}>{ar(n)}</button>)}</div></div>
-        <div className="col" style={{ gap: 6 }}><span className="xs muted">دقة التصحيح</span><div className="grid2" style={{ gridTemplateColumns: 'repeat(3, minmax(0,1fr))' }}>{[[0.85, 'متساهل'], [0.9, 'متوسط'], [0.95, 'صارم']].map(([v, l]) => <button key={v} className={'chip' + ((mem.prefs.strict || 0.9) === v ? ' on' : '')} onClick={() => memPrefs({ strict: v })}>{l}</button>)}</div></div>
+        <div className="col" style={{ gap: 6 }}><span className="xs muted">دقة التصحيح</span><div className="grid2" style={{ gridTemplateColumns: 'repeat(3, minmax(0,1fr))' }}>{[[0.75, 'متساهل'], [0.85, 'متوسط'], [0.92, 'صارم']].map(([v, l]) => <button key={v} className={'chip' + (passOf(mem.prefs.strict) === v ? ' on' : '')} onClick={() => memPrefs({ strict: v })}>{l}</button>)}</div><span className="xs muted" style={{ lineHeight: 1.7 }}>لو المايك مش بيلقط كلامك كويس اختار «متساهل».</span></div>
         <button className="btn ghost" onClick={() => { const l = micLog.slice(-8).join('\n'); alert(l || 'لا توجد سجلات بعد'); }}>سجل المايك (للدعم الفني)</button>
       </motion.section>}</AnimatePresence>
+      {!mem.prefs.intro && <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="card col" style={{ gap: 10, borderColor: 'var(--acc)', borderWidth: 2 }}>
+        <div className="row" style={{ gap: 8 }}><Brain size={24} className="accent" /><b style={{ fontSize: 17 }}>أهلًا بك في الحفظ الذكي</b></div>
+        {[[Gauge, 'حدّد مستواك', 'في سورة أو جزء، ليعرف الرفيق ما تحفظه'], [BookOpen, 'احفظ بالترديد', 'الشيخ يقرأ الآية، وأول ما يخلص تردّد بصوتك وكلامك يظهر قدامك'], [Mic, 'سمّع من حفظك', 'الآيات مخفية وتظهر كلمة كلمة مع قراءتك'], [CalendarClock, 'راجع يوميًا', 'الرفيق يحسب ميعاد مراجعة كل آية ويجهّز لك خطة اليوم']].map(([I, t, d], k) =>
+          <div key={t} className="row" style={{ gap: 10, alignItems: 'flex-start' }}><span style={{ width: 30, height: 30, borderRadius: 10, display: 'grid', placeItems: 'center', background: 'color-mix(in srgb, var(--acc) 14%, transparent)', flexShrink: 0 }}><I size={17} className="accent" /></span><span className="col" style={{ gap: 2 }}><b className="small">{ar(k + 1)}. {t}</b><span className="xs muted" style={{ lineHeight: 1.7 }}>{d}</span></span></div>)}
+        <div className="grid2"><button className="btn" onClick={() => { memPrefs({ intro: 1 }); go('/hafiz/placement'); }}>ابدأ بتحديد المستوى</button><button className="btn soft" onClick={() => memPrefs({ intro: 1 })}>فهمت</button></div>
+      </motion.section>}
       <section className="row" style={{ gap: 16, padding: 18, borderRadius: 26, background: 'var(--hero)', color: 'var(--heroText)' }}>
         <Ring size={100} value={ov.avg} label={`متوسط التذكّر ${Math.round(ov.avg * 100)}٪`}><span className="num" style={{ fontSize: 22, color: 'var(--heroText)' }}>{pct(ov.avg)}</span><span className="xs" style={{ opacity: .85 }}>التذكّر</span></Ring>
         <div className="col" style={{ gap: 4 }}>

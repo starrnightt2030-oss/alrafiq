@@ -28,6 +28,7 @@ export const TILES = {
   azkar: { to: '/azkar', label: 'الأذكار', sub: 'حصن المسلم كاملًا', c: ['#1E9E74', '#0B5E46'] },
   quran: { to: '/quran', label: 'المصحف الشريف', sub: 'قراءة بخط المصحف المعتمد', c: ['#2F5FD0', '#172E78'], wide: true },
   wird: { to: '/wird', label: 'الورد اليومي', sub: 'تسبيح واستغفار', c: ['#16A2B0', '#0B5A6E'] },
+  hafiz: { to: '/hafiz', label: 'الحفظ الذكي بالصوت', sub: 'احفظ وسمّع واختبر بصوتك مع الشيخ', c: ['#0FA37F', '#0B4F5E'], wide: true, isNew: true },
   hifz: { to: '/hifz', label: 'الحفظ', sub: 'متابعة ومراجعة', c: ['#8A55D6', '#4A2A8C'] },
   quiz: { to: '/quiz', label: 'فاستبقوا الخيرات', sub: 'مسابقة بمراحل وشهادة', c: ['#D99A2B', '#8A4B0E'], wide: true },
   stories: { to: '/stories', label: 'القصص', sub: 'سيرة وصحابة وأنبياء', c: ['#E0743A', '#8C2E16'] },
@@ -46,7 +47,7 @@ export const TILES = {
   zakat: { to: '/zakat', label: 'حاسبة الزكاة', sub: 'المال والذهب والتجارة', c: ['#3E9B5A', '#17502A'] },
   fasting: { to: '/fasting', label: 'الصيام ورمضان', sub: 'السنن والإمساكية والختمة', c: ['#7A3FB0', '#3A1460'] },
 };
-export const TILE_ORDER = ['azkar', 'quran', 'wird', 'hifz', 'quiz', 'stories', 'rufaqa', 'duas', 'ruqyah', 'challenges', 'report', 'qibla', 'prayer', 'fasting', 'library', 'asmaa', 'nawawi', 'manasik', 'zakat', 'badges'];
+export const TILE_ORDER = ['azkar', 'quran', 'hafiz', 'wird', 'hifz', 'quiz', 'stories', 'rufaqa', 'duas', 'ruqyah', 'challenges', 'report', 'qibla', 'prayer', 'fasting', 'library', 'asmaa', 'nawawi', 'manasik', 'zakat', 'badges'];
 
 const surahOfPage = (p) => { let s = quranMeta.surahs[0]; for (const x of quranMeta.surahs) { if (x.page <= p) s = x; else break; } return s; };
 
@@ -214,7 +215,9 @@ function Tiles({ d, wirdTotal, goal, azDone, lastPage, surah, ch, streak, place,
   const hifz = useStore((x) => x.hifz);
   const best = useStore((x) => x.quiz.best);
   const rq = useStore((x) => x.rufaqa);
-  const order = [...(saved || []).filter((k) => TILES[k]), ...TILE_ORDER.filter((k) => !(saved || []).includes(k))];
+  // الأقسام الجديدة بتدخل في مكانها الطبيعي (بعد القسم اللي قبلها في الترتيب الأصلي) حتى لو المستخدم رتّب الأقسام بنفسه
+  const order = (() => { const o = (saved || []).filter((k) => TILES[k]); if (!saved) return [...TILE_ORDER]; TILE_ORDER.forEach((k, i) => { if (o.includes(k)) return; const before = TILE_ORDER.slice(0, i).reverse().find((x) => o.includes(x)); o.splice(before ? o.indexOf(before) + 1 : 0, 0, k); }); return o; })();
+  const memA = useStore((x) => x.mem?.ayat) || {};
   const [edit, setEdit] = useState(false);
   const [pick, setPick] = useState(null);
   const due = dueReviews(hifz, 99).length, mem = memorizedCount(hifz);
@@ -223,6 +226,7 @@ function Tiles({ d, wirdTotal, goal, azDone, lastPage, surah, ch, streak, place,
     azkar: azDone === 2 ? 'الصباح والمساء ✓' : azDone ? 'أذكار واحدة ✓' : 'ابدأ أذكارك',
     quran: `${surah} — صفحة ${ar(lastPage)}`,
     wird: `${arNum(wirdTotal)} من ${arNum(goal)}`,
+    hafiz: (() => { const n = Object.keys(memA).length; if (!n) return 'جديد ✨ ابدأ الآن'; const d = Object.values(memA).filter((m) => m.due <= Date.now()).length; return d ? `${ar(d)} آية للمراجعة اليوم` : `${ar(n)} آية في سجلك`; })(),
     hifz: due ? `${ar(due)} للمراجعة` : mem ? `${arNum(mem)} صفحة محفوظة` : 'ابدأ خطتك',
     quiz: best ? `أعلى نتيجة ${arNum(best)} نقطة` : 'العب وحدك أو نافس صديقك',
     challenges: ch.c ? (ch.started ? `${ar(Math.round(ch.pct * 100))}٪ من التحدي` : 'تحدٍّ جديد') : 'كل التحديات ✓',
