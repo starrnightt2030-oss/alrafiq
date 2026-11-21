@@ -17,6 +17,7 @@ import Cert from '../components/Cert.jsx';
 import { go } from '../router.js';
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+const sfxSoft = () => { try { vibrate([30]); } catch (e) {} };
 const clean = (t) => t.replace(/[ \s]*[٠-٩]+\s*$/, '');
 const pct = (x) => ar(Math.round(x * 100)) + '٪';
 const sname = (s) => SURAHS[s - 1].name;
@@ -105,7 +106,7 @@ function MicCue({ phase, heard, hint }) {
           {phase === 'sheikh' ? <Volume2 size={32} color="#fff" /> : <Mic size={32} color="#fff" />}
         </motion.span>
       </div>
-      <div style={{ fontWeight: 800, fontSize: 17, color: C }}>{phase === 'sheikh' ? 'استمع للشيخ…' : phase === 'prep' ? 'لحظة… المايك بيفتح' : 'تكلّم الآن'}</div>
+      <div style={{ fontWeight: 800, fontSize: 17, color: C }}>{phase === 'sheikh' ? 'استمع للشيخ…' : phase === 'prep' ? 'لحظة… المايك بيفتح' : '🎙️ ابدأ التلاوة الآن'}</div>
       {live && hint && !words.length && <div className="xs muted">{hint}</div>}
       {(live || words.length > 0) && phase !== 'sheikh' && <div className="card" style={{ width: '100%', minHeight: 54, background: 'var(--surf2)', padding: '10px 12px', textAlign: 'center', fontSize: 19, lineHeight: 1.9, fontFamily: "'KFGQPC Hafs', Amiri, serif" }}>
         {words.length ? words.map((w, k) => <motion.span key={k + w} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18 }}>{w} </motion.span>) : <span className="xs muted" style={{ fontFamily: 'inherit' }}>كلامك هيظهر هنا وأنت بتقرأ…</span>}
@@ -156,7 +157,7 @@ function Session({ mode, s, from, to, by }) {
         for (tries = 1; tries <= maxT; tries++) {
           if (!alive(my)) return;
           // في الحفظ: الشيخ يقرأ الآية أولًا، والمايك يجهز قبل ما يخلّص بلحظة ويفتح أول ما يسكت
-          const lead = mode === 'learn' ? async (early) => { setHeard(''); await sheikh(x, my, useMic ? early : null); setBad((b) => ({ ...b, [x.a]: null })); } : null;
+          const lead = mode === 'learn' ? async (early) => { setHeard(''); await sheikh(x, my, useMic ? early : null); } : null; // الأخطاء بتفضل بالأحمر قدامك وانت بتعيد
           if (!useMic) { if (lead) await lead(); if (!alive(my)) return; setTurn(true); const ok = await askManual(); setManual(null); if (ok === null || !alive(my)) return; acc = ok ? 1 : 0.5; break; }
           setTurn(true);
           const r = await listenAyah(x, my, lead); if (!r || !alive(my)) return;
@@ -165,10 +166,10 @@ function Session({ mode, s, from, to, by }) {
           // خطأ: الكلمات الغلط أو الناقصة تتعلّم بالأحمر، والشيخ يعيد الآية صحيحة
           const ms = r.words.filter((_, j) => missed.includes(j)).slice(0, 5).join(' ');
           setBad((b) => ({ ...b, [x.a]: r.words.map((_, j) => missed.includes(j)) }));
-          setNote({ ok: false, t: !r.said ? 'لم أسمعك — استمع للشيخ ثم اقرأ بصوت أوضح' : ms ? `أخطأت أو نسيت: «${ms}» — استمع للشيخ` : 'استمع للشيخ' });
+          setNote({ ok: false, t: !r.said ? 'لم أسمعك — استمع للشيخ ثم اقرأ بصوت أوضح' : ms ? `أخطأت أو نسيت: «${ms}» — استمع للشيخ وأعد الآية` : 'استمع للشيخ وأعد الآية', miss: ms });
           if (hidden) {
             setReveal(x.a); await wait(500); await sheikh(x, my); if (!alive(my)) return; corrected = true;
-            if (tries < maxT) { setNote({ ok: false, t: 'الآن أعد الآية من حفظك' }); await wait(700); setReveal(null); setBad((b) => ({ ...b, [x.a]: null })); setHits((h) => ({ ...h, [x.a]: null })); }
+            if (tries < maxT) { setNote({ ok: false, t: ms ? `الآن أعد الآية من حفظك — انتبه لـ«${ms}»` : 'الآن أعد الآية من حفظك', miss: ms }); await wait(700); setReveal(null); setBad((b) => ({ ...b, [x.a]: null })); setHits((h) => ({ ...h, [x.a]: null })); }
           } else if (tries < maxT) await wait(900); // في الحفظ: الشيخ هيعيدها في المحاولة الجاية والأحمر قدامك
         }
         if (acc < PASS) break;
@@ -306,7 +307,9 @@ function ScopePick({ kind, onPick }) {
             {on ? <CheckCircle2 size={20} className="accent" /> : <span style={{ width: 20, height: 20, borderRadius: '50%', border: '2px solid var(--line)' }} />}
             <span className="amiri" style={{ flex: 1, fontSize: 17, fontWeight: 700 }}>سورة {x.name}</span>{memSurahs.has(x.n) && <Pill c="#1FA36A">في سجلك</Pill>}<span className="xs muted">{ar(x.ayahs)} آية</span></button>; })}
         </section></>}
-      <div className="row" style={{ gap: 6 }}><span className="xs muted">عدد الأسئلة</span>{[5, 10, 15, 20].map((v) => <button key={v} className={'chip' + (n === v ? ' on' : '')} style={{ flex: 1 }} onClick={() => setN(v)}>{ar(v)}</button>)}</div>
+      {/* تحديد المستوى بيسأل سؤال من كل سورة على الأقل، فعدد الأسئلة بيتحدد لوحده */}
+      {kind === 'test' ? <div className="row" style={{ gap: 6 }}><span className="xs muted">عدد الأسئلة</span>{[5, 10, 15, 20].map((v) => <button key={v} className={'chip' + (n === v ? ' on' : '')} style={{ flex: 1 }} onClick={() => setN(v)}>{ar(v)}</button>)}</div>
+        : ready && <div className="xs muted center" style={{ lineHeight: 1.8 }}>هيكون فيه سؤال على الأقل من كل سورة، عشان نعرف مستواك فيها كلها.</div>}
       <button className="btn" style={{ minHeight: 54, fontSize: 16 }} disabled={!ready} onClick={go_}><Mic size={20} /> {ready ? `ابدأ: ${label}` : 'اختر النطاق أولًا'}</button>
     </>
   );
@@ -359,26 +362,36 @@ function Quiz({ kind, by }) {
       if (kind === 'placement' && skipped.has(it.s)) { out.push({ ...it, ok: false, acc: 0, level, skip: true }); setRes([...out]); continue; }
       setI(q); setLv(level); setHits(words.map(() => false)); setBad(null); setRev(false); setHeard(''); setNote(null); setTurn(false);
       // الشيخ يقرأ الآية السابقة، والمايك يجهز قبل ما يخلّص بلحظة ويفتح أول ما يسكت
-      const lead = qk === 'next' ? async (early) => { setPhase('sheikh'); await playAyah(P.reciter, it.s, prev.a, run.current, my, early); setTurn(true); } : null;
-      if (!lead) setTurn(true);
-      const r = await listenFor({ words, my, alive, lead, rounds: 2, waitFirst: 9000, setPhase, setHeard, setHit: setHits, holder: run.current });
-      if (!r || !alive(my)) return;
-      setTurn(false); setPhase(null);
+      // لو الإجابة غلط: «حاول مرة تانية» (من غير ما نكشف الصح) لحد ٣ محاولات، وبعد التالتة الشيخ يقرأ الآية الصحيحة والسؤال مايتحسبش
+      const TRIES = 3;
+      let r = null, tries = 0;
+      for (tries = 1; tries <= TRIES; tries++) {
+        const lead = tries === 1 && qk === 'next' ? async (early) => { setPhase('sheikh'); await playAyah(P.reciter, it.s, prev.a, run.current, my, early); setTurn(true); } : null;
+        if (!lead) setTurn(true);
+        r = await listenFor({ words, my, alive, lead, rounds: 2, waitFirst: 9000, setPhase, setHeard, setHit: setHits, holder: run.current });
+        if (!r || !alive(my)) return;
+        setTurn(false); setPhase(null);
+        if (r.skip || r.acc >= PASS || tries === TRIES) break;
+        // غلط: نخبّي اللي اتلوّن ونطلب محاولة تانية
+        setHits(words.map(() => false)); sfxSoft();
+        setNote({ ok: false, t: !r.said ? `لم أسمعك — حاول مرة تانية بصوت أوضح (المحاولة ${ar(tries + 1)} من ${ar(TRIES)})` : `القراءة فيها خطأ — حاول مرة تانية (المحاولة ${ar(tries + 1)} من ${ar(TRIES)})` });
+        await wait(1300); setNote(null); setHeard('');
+      }
       if (r.skip && kind === 'placement') skipped.add(it.s);
-      const acc = r.acc, ok = acc >= PASS, best = r.hit;
-      if (kind === 'test') { const k = keyOf(it.s, it.a); memAyah(k, review(useStore.getState().mem.ayat[k], gradeOf(acc, 1), r.missed)); }
-      out.push({ ...it, ok, acc, level }); setRes([...out]);
+      const acc = r.acc, ok = !r.skip && acc >= PASS, best = r.hit;
+      if (kind === 'test') { const k = keyOf(it.s, it.a); memAyah(k, review(useStore.getState().mem.ayat[k], gradeOf(ok ? acc : Math.min(acc, PASS - 0.01), Math.min(tries, 3)), r.missed)); }
+      out.push({ ...it, ok, acc: ok ? acc : 0, level, tries }); setRes([...out]);
       setRev(true);
-      if (ok) { setBad(r.missed.length ? words.map((_, j) => r.missed.includes(j)) : null); setNote({ ok: true, t: r.missed.length ? `أحسنت — وانتبه للكلمات المعلّمة بالأحمر` : 'أحسنت، بارك الله فيك' }); streak++; if (kind === 'test' && streak >= 2 && level < 3) { level++; streak = 0; } await wait(r.missed.length ? 1800 : 900); }
+      if (ok) { setBad(r.missed.length ? words.map((_, j) => r.missed.includes(j)) : null); setNote({ ok: true, t: tries > 1 ? `أحسنت — صحيحة من المحاولة ${['', 'الأولى', 'الثانية', 'الثالثة'][tries]}` : r.missed.length ? `أحسنت — وانتبه للكلمات المعلّمة بالأحمر` : 'أحسنت، بارك الله فيك' }); streak++; if (kind === 'test' && streak >= 2 && level < 3) { level++; streak = 0; } await wait(r.missed.length || tries > 1 ? 1800 : 900); }
       else {
         streak = 0; if (kind === 'test' && level > 1) level--;
         if (r.skip) { setHits(words.map(() => true)); setNote({ ok: false, t: 'تم التخطّي' }); await wait(700); }
         else {
-          // الكلمات الغلط أو الناقصة بالأحمر، والشيخ يعيد الآية صحيحة
+          // بعد ٣ محاولات: الكلمات الغلط بالأحمر، والشيخ يقرأ الآية الصحيحة، والسؤال مايتحسبش
           const ms = words.filter((_, j) => r.missed.includes(j)).slice(0, 5).join(' ');
           setBad(words.map((_, j) => r.missed.includes(j)));
-          setNote({ ok: false, t: !r.said ? 'لم أسمعك — استمع للآية من الشيخ' : ms ? `أخطأت أو نسيت: «${ms}» — استمع للشيخ` : 'استمع للآية صحيحة' });
-          await wait(400); setPhase('sheikh'); await playAyah(P.reciter, it.s, it.a, run.current, my); setPhase(null); await wait(500);
+          setNote({ ok: false, t: `${ms ? `أخطأت أو نسيت: «${ms}» — ` : ''}استمع للآية الصحيحة من الشيخ (السؤال ده مش هيتحسب)` });
+          await wait(400); setPhase('sheikh'); await playAyah(P.reciter, it.s, it.a, run.current, my); setPhase(null); await wait(600);
         }
       }
     }

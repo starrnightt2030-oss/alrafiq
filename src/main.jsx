@@ -12,8 +12,9 @@ import './styles/global.css';
 import App from './App.jsx';
 import { useStore } from './store.js';
 import { applyTheme } from './themes.js';
-import { registerSW } from './lib/update.js';
+import { registerSW, appReady } from './lib/update.js';
 
 applyTheme(useStore.getState().settings.theme);
 createRoot(document.getElementById('root')).render(<React.StrictMode><App /></React.StrictMode>);
 registerSW();
+appReady();

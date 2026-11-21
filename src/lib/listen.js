@@ -74,7 +74,7 @@ const wire = (p) => wired || (wired = (async () => {
   await p.removeAllListeners().catch(() => {});
   // بنبعت كل الاحتمالات اللي المحرّك سمعها (مش الأول بس)، والشاشة بتختار الأقرب للآية
   await p.addListener('partialResults', (d) => active?.got(d?.matches));
-  await p.addListener('listeningState', (d) => { const on = d?.status === 'started'; log('المحرّك: ' + (on ? 'بدأ يسمع كلام' : 'وقف')); if (on) active?.ready?.(); });
+  await p.addListener('listeningState', (d) => { const st = d?.status; log('المحرّك: ' + (st === 'ready' ? 'جاهز يسمع' : st === 'started' ? 'بدأ يسمع كلام' : 'وقف')); if (st === 'ready' || st === 'started') active?.ready?.(); });
 })());
 // تجهيز المايك أول ما الشاشة تفتح، عشان أول سماع يبدأ من غير تأخير
 export function warmMic() { if (native) wire(plugin()).catch(() => {}); }
@@ -138,8 +138,8 @@ export function hear({ onText, onFail, onReady, rank, maxMs = 15000, waitMs = 70
         try {
           await p.start({ language: LANG, partialResults: true, popup: false, maxResults: 5 });
           fails = 0; if (!restarts) log('بدأ السماع في الخلفية');
-          // بعض الموبايلات مابتبعتش حدث «بدأ»، فبعد لحظة بنعتبره جاهز
-          setTimeout(ready, 350);
+          // أندرويد بيبعت «جاهز» أول ما المايك يفتح فعلًا؛ لو موبايل ماعتش، بعد لحظة بنعتبره جاهز
+          setTimeout(ready, 900);
         } catch (e) {
           log('رفض يبدأ: ' + (e?.message || e));
           if (++fails >= 3) { onFail?.(String(e?.message || e || 'error')); finish(); }

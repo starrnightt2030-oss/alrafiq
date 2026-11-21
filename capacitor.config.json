@@ -2,9 +2,29 @@
   "appId": "com.eldawly.alrafiq",
   "appName": "الرفيق",
   "webDir": "dist",
-  "android": { "backgroundColor": "#0A231E" },
+  "android": {
+    "backgroundColor": "#0A231E"
+  },
   "plugins": {
-    "SplashScreen": { "launchShowDuration": 700, "launchAutoHide": true, "backgroundColor": "#0A231E", "showSpinner": false, "androidScaleType": "CENTER_INSIDE", "splashFullScreen": false, "splashImmersive": false },
-    "LocalNotifications": { "smallIcon": "ic_stat_rafiq", "iconColor": "#D9B55A" }
+    "SplashScreen": {
+      "launchShowDuration": 700,
+      "launchAutoHide": true,
+      "backgroundColor": "#0A231E",
+      "showSpinner": false,
+      "androidScaleType": "CENTER_INSIDE",
+      "splashFullScreen": false,
+      "splashImmersive": false
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_rafiq",
+      "iconColor": "#D9B55A"
+    },
+    "CapacitorUpdater": {
+      "autoUpdate": false,
+      "appReadyTimeout": 15000,
+      "resetWhenUpdate": true,
+      "statsUrl": "",
+      "responseTimeout": 30
+    }
   }
 }

@@ -23,13 +23,72 @@ async function latestApk() {
   return { v: String(j.tag_name || '').replace(/^v/, ''), size: a.size || 0 };
 }
 
+export const NATIVE_HASH = __NATIVE_HASH__;
+const timed = (p, ms) => Promise.race([p, new Promise((_, r) => setTimeout(() => r(new Error('timeout')), ms))]);
+// الملاحظات: بس النسخ اللي أحدث من اللي عندك ولحد النسخة اللي هتنزل (مش كل الملاحظات القديمة)
+function newNotes(remote, upto) {
+  if (!remote.history) return remote.version === upto ? remote.notes || [] : [];
+  return remote.history.filter((x) => cmp(x.v, APP.version) > 0 && cmp(x.v, upto) <= 0).flatMap((x) => x.notes || []);
+}
+// قايمة الملفات اللي عندك دلوقتي: بعد تحديث سريع بنحفظها، وإلا اللي جوه التطبيق نفسه
+const MKEY = 'rf-files';
+async function localManifest() {
+  try { const m = JSON.parse(localStorage.getItem(MKEY) || 'null'); if (m && m.version === APP.version) return { files: m.files.map(([f, h]) => ({ f, h })) }; } catch {}
+  return fetch('./update-manifest.json').then((x) => x.json()).catch(() => ({ files: [] }));
+}
+// لو جزء الأندرويد زي ما هو: «تحديث سريع» بيحمّل الملفات اللي اتغيّرت بس. لو اتغيّر: APK كامل.
+async function liveInfo(remote) {
+  if (!NATIVE || !remote.native || remote.native !== NATIVE_HASH || !remote.manifest) return null;
+  try {
+    const [rm, local] = await Promise.all([timed(fetch(SITE + remote.manifest + '?v=' + remote.version, { cache: 'no-store' }).then((x) => x.json()), 12000), localManifest()]);
+    if (!rm?.files?.length || rm.version !== remote.version) return null;
+    const have = new Map(local.files.map((x) => [x.f, x.h]));
+    const need = rm.files.filter((x) => have.get(x.f) !== x.h);
+    return { files: rm.files, need: need.length, bytes: need.reduce((a, x) => a + x.s, 0) };
+  } catch { return null; }
+}
 export async function checkForUpdate() {
   const res = await fetch((NATIVE ? SITE : './') + 'version.json?t=' + Date.now(), { cache: 'no-store' });
   if (!res.ok) throw new Error('تعذّر الاتصال بالخادم');
   const remote = await res.json();
-  let latest = remote.version, notes = remote.notes || [], size = 0;
-  if (NATIVE) { const apk = await latestApk(); if (apk.v !== latest) notes = []; latest = apk.v; size = apk.size; }
-  return { current: APP.version, latest, notes, size, hasUpdate: cmp(latest, APP.version) > 0 };
+  const base = { current: APP.version, manifest: remote.manifest };
+  if (!NATIVE) return { ...base, latest: remote.version, notes: newNotes(remote, remote.version), size: 0, mode: 'web', hasUpdate: cmp(remote.version, APP.version) > 0 };
+  if (cmp(remote.version, APP.version) > 0) {
+    const live = await liveInfo(remote);
+    if (live) return { ...base, latest: remote.version, notes: newNotes(remote, remote.version), size: live.bytes, mode: 'live', live, hasUpdate: true };
+  }
+  // محتاج APK: نقارن بآخر ملف APK منشور فعلًا (مش بنسخة الموقع اللي بتتنشر قبله بدقايق)
+  const apk = await latestApk();
+  return { ...base, latest: apk.v, notes: newNotes(remote, apk.v), size: apk.size, mode: 'apk', hasUpdate: cmp(apk.v, APP.version) > 0 };
+}
+
+// التحديث السريع: الإضافة بتقارن كل ملف بالموجود جوه التطبيق وبتحمّل الناقص بس
+let liveRun = null, liveBundle = null;
+export function downloadLive(info, onProgress) {
+  if (liveRun) return liveRun;
+  liveRun = (async () => {
+    const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
+    const h = await CapacitorUpdater.addListener('download', (e) => { if (e?.percent != null) onProgress?.(Math.min(1, e.percent / 100)); });
+    try {
+      const manifest = info.live.files.map((x) => ({ file_name: x.f, file_hash: x.h, download_url: SITE + x.f.split('/').map(encodeURIComponent).join('/') + '?v=' + info.latest }));
+      liveBundle = await CapacitorUpdater.download({ url: SITE + info.manifest, version: info.latest, manifest });
+      onProgress?.(1);
+      return liveBundle;
+    } finally { h.remove(); }
+  })();
+  liveRun.finally(() => { liveRun = null; });
+  return liveRun;
+}
+// بيفتح النسخة الجديدة (التطبيق بيعيد تحميل نفسه في ثانية)
+export async function applyLive(info, bundle = liveBundle) {
+  const { CapacitorUpdater } = await import('@capgo/capacitor-updater');
+  try { localStorage.setItem(MKEY, JSON.stringify({ version: info.latest, files: info.live.files.map((x) => [x.f, x.h]) })); } catch {}
+  await CapacitorUpdater.set({ id: bundle.id });
+}
+// لازم التطبيق يقول «أنا اشتغلت تمام» بعد كل فتحة، وإلا الإضافة ترجع للنسخة اللي قبلها (حماية لو تحديث باظ)
+export async function appReady() {
+  if (!NATIVE) return;
+  try { const { CapacitorUpdater } = await import('@capgo/capacitor-updater'); await CapacitorUpdater.notifyAppReady(); } catch {}
 }
 
 const apkOf = (v) => (v ? `https://github.com/starrnightt2030-oss/alrafiq/releases/download/v${v}/alrafiq.apk` : APK_URL);
